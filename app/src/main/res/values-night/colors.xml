@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="prohori_surface">#FFF8F9F6</color>
+    <color name="prohori_ink">#FF0A0A0A</color>
+    <color name="prohori_primary">#FFB3261E</color>
+</resources>

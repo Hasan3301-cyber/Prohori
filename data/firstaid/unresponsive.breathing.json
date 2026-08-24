@@ -1,0 +1,84 @@
+{
+  "id": "unresponsive.breathing",
+  "version": "1.1.0",
+  "title": "Not waking up but still breathing — roll them on their side",
+  "applies_to": "Someone who does not answer you at all, but whose chest is rising and falling normally.",
+  "also_called": [
+    "unconscious",
+    "will not wake up",
+    "passed out",
+    "fainted",
+    "recovery position",
+    "unresponsive",
+    "knocked out but breathing",
+    "blacked out"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "European Resuscitation Council Guidelines 2021: Basic Life Support",
+      "section": "The unresponsive person who is breathing normally",
+      "url": "https://cprguidelines.eu/"
+    },
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Unresponsive and breathing normally, recovery position",
+      "url": "https://www.globalfirstaidcentre.org/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Tap their shoulders and shout. If they do not answer or move, they are unresponsive."
+    },
+    {
+      "n": 2,
+      "kind": "assessment",
+      "text": "Tilt their head back gently and lift their chin. Watch the chest and listen at the mouth for up to 10 seconds."
+    },
+    {
+      "n": 3,
+      "kind": "escalation",
+      "text": "If the chest is rising and falling normally, call for an ambulance now and say the person is not waking up."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Roll them onto their side, facing you."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "Tilt their head so the mouth points slightly down. Anything in the mouth can then drain out instead of going into the chest."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "Bend the top leg and the top arm to stop them rolling onto their face."
+    },
+    {
+      "n": 7,
+      "kind": "assessment",
+      "text": "Stay with them. Keep checking that the chest is still rising and falling normally until help arrives."
+    },
+    {
+      "n": 8,
+      "kind": "action",
+      "text": "Loosen tight clothing at the neck and cover them so they stay warm."
+    }
+  ],
+  "do_not": [
+    "Do not leave them lying flat on their back. If they are sick, they can choke on it.",
+    "Do not give them anything to eat or drink, and do not try to give medicine.",
+    "Do not shake them hard or slap them to wake them up.",
+    "Do not move them at all if they fell from a height or you think the neck or back is hurt, unless they are choking or being sick."
+  ],
+  "escalate_if": [
+    "The chest stops rising and falling normally — roll them onto their back and start pushing on the chest.",
+    "They are bleeding heavily as well — press hard on the wound while they lie on their side.",
+    "They start shaking or jerking — do not hold them down, move hard things away, and wait for it to stop."
+  ]
+}

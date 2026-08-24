@@ -1,0 +1,88 @@
+{
+  "id": "breathing.distress",
+  "version": "1.0.0",
+  "title": "Struggling to breathe — sit them up and get help",
+  "applies_to": "Someone who is awake but fighting for every breath, can only speak in short bursts, or whose lips look blue.",
+  "also_called": [
+    "cannot breathe",
+    "short of breath",
+    "asthma attack",
+    "wheezing",
+    "gasping for air",
+    "lips turning blue",
+    "breathless",
+    "puffer",
+    "inhaler"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Breathing difficulty and asthma",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "Recognition of breathing difficulty and positioning",
+      "url": "https://cprguidelines.eu/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Ask them to say their name. If they can get out only one or two words, the breathing is very bad."
+    },
+    {
+      "n": 2,
+      "kind": "escalation",
+      "text": "Call for an ambulance now. Say they are fighting for breath."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Help them sit upright, leaning forward a little, with their arms resting on a table or on their knees."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Open a window or a door. Loosen anything tight around the neck and the chest."
+    },
+    {
+      "n": 5,
+      "kind": "assessment",
+      "text": "Ask whether they have their own puffer, sometimes called an inhaler, that a doctor gave them for this."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "If they do, help them use their own one, exactly as the label on it says."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "Speak slowly and keep the room calm. Ask them to breathe out for longer than they breathe in."
+    },
+    {
+      "n": 8,
+      "kind": "assessment",
+      "text": "Keep watching their lips and their face. Stay with them until help arrives."
+    }
+  ],
+  "do_not": [
+    "Do not make them lie flat. Lying down makes breathing harder.",
+    "Do not leave them alone while you fetch things.",
+    "Do not give them anything to eat or drink.",
+    "Do not let them use a puffer that belongs to someone else.",
+    "Do not crowd them. One calm person close by is better than four."
+  ],
+  "escalate_if": [
+    "Their lips, tongue, or face turn blue or grey — say this on the phone at once.",
+    "They stop answering you and stop breathing normally — start pushing on the chest.",
+    "They go quiet and stop fighting to breathe — that is worse, not better. Tell the crew now.",
+    "Their face or throat is swelling too — this may be a bad allergy reaction.",
+    "They are holding their chest, or the pain spreads to an arm or the jaw — say so on the phone."
+  ]
+}

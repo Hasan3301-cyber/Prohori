@@ -1,0 +1,91 @@
+{
+  "id": "electric.shock",
+  "version": "1.0.0",
+  "title": "Electric shock — cut the power before you touch them",
+  "applies_to": "Someone who has touched live electricity: a socket, a bare wire, a machine, or a fallen power line.",
+  "also_called": [
+    "electric shock",
+    "electrocuted",
+    "shocked by a live wire",
+    "touched a live wire",
+    "power line fell",
+    "electrocution",
+    "shock from socket"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Electrical injury and rescuer safety",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: Special Circumstances",
+      "section": "Electrocution and lightning strike",
+      "url": "https://cprguidelines.eu/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Look before you touch anything. If they are still in contact with the electricity, they are live, and so is anything touching them."
+    },
+    {
+      "n": 2,
+      "kind": "action",
+      "text": "Switch the power off at the fuse box, or pull the plug out. That is safer and faster than pulling at the person."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "If you cannot switch it off, stand on something dry and push them clear with something dry that does not carry current, such as a wooden broom."
+    },
+    {
+      "n": 4,
+      "kind": "escalation",
+      "text": "Call for an ambulance. Say it was an electric shock, and say whether it was a house socket or a power line."
+    },
+    {
+      "n": 5,
+      "kind": "assessment",
+      "text": "Once they are clear, tap their shoulders and shout. Look at the chest for up to 10 seconds."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "If the chest is not rising and falling normally, lay them flat and press hard and fast on the middle of the chest. Keep going."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "If they are breathing, keep them lying still and look for burns where the current went in and where it came out."
+    },
+    {
+      "n": 8,
+      "kind": "action",
+      "text": "Cool any burn under cool running water and cover it loosely with a clean dry cloth."
+    },
+    {
+      "n": 9,
+      "kind": "escalation",
+      "text": "They must be checked at a hospital even if they now feel fine. Electricity can upset the heart hours later."
+    }
+  ],
+  "do_not": [
+    "Do not touch them while they are still in contact with the electricity.",
+    "Do not go near a fallen power line. Stay at least 10 metres back and wait for the power company.",
+    "Do not use anything wet, or anything made of metal, to push them clear.",
+    "Do not let them go home to rest without being seen.",
+    "Do not stand in water while you work on this."
+  ],
+  "escalate_if": [
+    "It was a high voltage line, or lightning — treat it as an emergency even if they look well.",
+    "They stop answering you and stop breathing normally — start pushing on the chest.",
+    "They say their heart is racing or skipping — say this on the phone.",
+    "They were thrown or fell — a bone may be broken and the neck may be hurt.",
+    "The burn goes deeper than it looks, or the limb is going numb — tell the crew."
+  ]
+}

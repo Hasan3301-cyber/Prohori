@@ -1,0 +1,96 @@
+{
+  "id": "bleeding.severe",
+  "version": "1.1.0",
+  "title": "Heavy bleeding — press hard and do not let go",
+  "applies_to": "Someone bleeding fast, soaking through cloth, or bleeding that will not slow down.",
+  "also_called": [
+    "heavy bleeding",
+    "bleeding a lot",
+    "deep cut",
+    "stab wound",
+    "cut artery",
+    "tourniquet",
+    "blood will not stop",
+    "gunshot wound",
+    "machete wound"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Severe bleeding",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "Control of life-threatening external bleeding",
+      "url": "https://cprguidelines.eu/"
+    },
+    {
+      "source": "Committee on Tactical Combat Casualty Care, Tourniquet application guidance",
+      "section": "Limb tourniquet placement and time recording",
+      "url": "https://www.deployedmedicine.com/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "escalation",
+      "text": "Call for help now. If someone else is there, tell them to call while you start."
+    },
+    {
+      "n": 2,
+      "kind": "action",
+      "text": "Press hard on the wound with a clean cloth. If you have no cloth, press with your bare hand."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Keep pressing without letting go. Do not lift the cloth to look at the wound."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "If blood soaks through, put another cloth on top and press harder. Leave the first cloth where it is."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "If the wound is on an arm or a leg, lift that arm or leg higher than the chest while you keep pressing."
+    },
+    {
+      "n": 6,
+      "kind": "assessment",
+      "text": "After a few minutes of hard pressing, check whether the bleeding has slowed. If it has, keep pressing and wait for help."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "If it is an arm or a leg and the bleeding will not stop, tie a wide band, called a tourniquet, about 5 cm above the wound. Twist or pull it tight until the bleeding stops."
+    },
+    {
+      "n": 8,
+      "kind": "action",
+      "text": "Look at a clock and remember the time you tightened the band. Say that time out loud to the ambulance crew when they arrive."
+    },
+    {
+      "n": 9,
+      "kind": "action",
+      "text": "Keep the person lying down. Cover them with a coat or blanket so they stay warm."
+    }
+  ],
+  "do_not": [
+    "Do not pull out glass, metal, or anything else stuck in the wound. Press around it instead and leave it in place.",
+    "Do not loosen or take off the tight band once the bleeding has stopped. Only the hospital should remove it.",
+    "Do not use string, wire, or a shoelace as the band. A thin band cuts into the skin and does not stop the bleeding.",
+    "Do not give them anything to eat or drink.",
+    "Do not put a tight band around the neck, chest, or belly. Press hard on those wounds instead."
+  ],
+  "escalate_if": [
+    "They go pale, cold, sweaty, or confused — they are losing too much blood. Say this on the phone when you call.",
+    "They stop answering you and stop breathing normally — start pushing on the chest.",
+    "Blood is spurting out in time with the heartbeat — go straight to the tight band if it is an arm or a leg."
+  ]
+}

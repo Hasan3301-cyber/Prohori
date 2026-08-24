@@ -1,0 +1,92 @@
+{
+  "id": "seizure.active",
+  "version": "1.0.0",
+  "title": "A fit or seizure — protect their head and wait it out",
+  "applies_to": "Someone whose body is shaking or has gone stiff, and who cannot answer you while it is happening.",
+  "also_called": [
+    "seizure",
+    "fit",
+    "convulsion",
+    "epilepsy",
+    "shaking uncontrollably",
+    "foaming at the mouth",
+    "jerking",
+    "fever fit in child"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Seizure",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "Seizure and post-seizure care",
+      "url": "https://cprguidelines.eu/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Look at a clock and note the time it started. How long it lasts matters more than anything else you can tell the doctor."
+    },
+    {
+      "n": 2,
+      "kind": "action",
+      "text": "Move hard, hot, and sharp things away from them. Leave the person where they are unless they are in danger."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Put something soft under their head, such as a folded coat."
+    },
+    {
+      "n": 4,
+      "kind": "assessment",
+      "text": "Let the shaking run its course. Watch it, stay close, and keep other people back."
+    },
+    {
+      "n": 5,
+      "kind": "escalation",
+      "text": "Call for an ambulance if it lasts longer than 5 minutes, if another one starts, or if this is their first ever fit."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "When the shaking stops, roll them onto their side with the mouth pointing slightly down."
+    },
+    {
+      "n": 7,
+      "kind": "assessment",
+      "text": "Check that the chest is rising and falling normally. Stay with them while they come round."
+    },
+    {
+      "n": 8,
+      "kind": "action",
+      "text": "Speak quietly and tell them where they are and what happened. They may be confused and frightened for a while."
+    },
+    {
+      "n": 9,
+      "kind": "escalation",
+      "text": "Tell the ambulance crew how long it lasted and what you saw."
+    }
+  ],
+  "do_not": [
+    "Do not hold them down or try to stop the shaking.",
+    "Do not put anything in their mouth, not even your fingers. Nobody can swallow their own tongue.",
+    "Do not give them anything to eat or drink until they are fully awake.",
+    "Do not leave them lying on their back once the shaking has stopped.",
+    "Do not crowd round them. Give them room and some privacy while they come round."
+  ],
+  "escalate_if": [
+    "It lasts longer than 5 minutes, or another one starts before they wake up — call now.",
+    "They do not start breathing normally once the shaking stops — start pushing on the chest.",
+    "They are pregnant, hurt themselves, or it happened in water — call an ambulance whatever else happens.",
+    "It is a young child who is hot to touch — say that on the phone.",
+    "They do not come back to their normal self within about an hour — get them seen."
+  ]
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A platform theme, not a Material Components one.
+
+    Every pixel of UI in this app is Compose, and `MainActivity.ProhoriTheme` is where
+    colour and type are actually decided. This file exists for the two frames before
+    Compose is running: the window background the launcher shows while the process starts.
+    Pulling in `com.google.android.material` just to name a parent here would add a
+    dependency that draws nothing.
+
+    `windowBackground` is set to the same surface colour the Compose theme uses, so the
+    launch does not flash white before the first frame. There is a `values-night`
+    counterpart for the same reason.
+-->
+<resources>
+    <style name="Theme.Prohori" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/prohori_surface</item>
+        <item name="android:statusBarColor">@color/prohori_ink</item>
+        <item name="android:navigationBarColor">@color/prohori_surface</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

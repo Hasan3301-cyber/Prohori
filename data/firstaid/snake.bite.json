@@ -1,0 +1,98 @@
+{
+  "id": "snake.bite",
+  "version": "1.0.0",
+  "title": "Snake bite — keep them still and get to hospital",
+  "applies_to": "Anyone bitten by a snake, or by something they did not see in grass, water, or a woodpile.",
+  "also_called": [
+    "snake bite",
+    "snake bit me",
+    "bitten by a snake",
+    "snakebite",
+    "cobra bite",
+    "viper bite",
+    "venom",
+    "bitten in the field",
+    "krait"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO Guidelines for the Management of Snakebite Envenoming",
+      "section": "First aid and transport to hospital",
+      "url": "https://www.who.int/"
+    },
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Snake bite",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "WHO Regional Guidelines: Snakebite Envenoming in South-East Asia",
+      "section": "What not to do at the scene",
+      "url": "https://www.who.int/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Move everyone back from where the snake is. Then look at the bite, and look at how they are breathing."
+    },
+    {
+      "n": 2,
+      "kind": "escalation",
+      "text": "Call for an ambulance, or start arranging a vehicle now. The hospital is the treatment. Nothing you do here replaces it."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Lay them down and tell them to stay as still as they can. Moving a bitten limb pushes the venom around the body."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Take off rings, bangles, watches, and tight clothing near the bite, before the swelling starts."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "Hold the bitten limb still with padding and a soft splint, and keep it level with the heart. Do not tie it tightly."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "Draw a line on the skin at the edge of the swelling and write the time beside it. Do that again every 15 minutes."
+    },
+    {
+      "n": 7,
+      "kind": "assessment",
+      "text": "Watch the eyelids, the speech, and the breathing. Drooping and slurring mean the venom is working on the nerves."
+    },
+    {
+      "n": 8,
+      "kind": "escalation",
+      "text": "Carry them to the vehicle. Go to a hospital that keeps snake bite treatment, even if it is further away."
+    },
+    {
+      "n": 9,
+      "kind": "action",
+      "text": "If the snake is already dead, photograph it from a safe distance. Never carry a live one, and never handle a dead one."
+    }
+  ],
+  "do_not": [
+    "Do not cut the bite, and do not try to suck the venom out.",
+    "Do not tie a tight band or a rope around the limb. It costs people their arms and legs.",
+    "Do not put ice, herbs, paste, dung, or a hot iron on the bite.",
+    "Do not give them alcohol, and do not let them walk if you can carry them.",
+    "Do not chase the snake or try to catch it. A second bite is a real risk."
+  ],
+  "escalate_if": [
+    "The eyelids droop, the speech slurs, or they cannot hold the head up — call now and say the word snake.",
+    "They stop breathing normally — start pushing on the chest and keep going.",
+    "The gums bleed, or a small cut keeps bleeding — the blood has stopped clotting.",
+    "The limb swells fast and the pain climbs — say that on the phone so treatment is ready.",
+    "They are a child, or they are pregnant — go to the hospital straight away."
+  ]
+}

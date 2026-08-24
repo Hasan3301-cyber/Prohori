@@ -1,0 +1,33 @@
+[workspace]
+members = ["core", "core-ffi", "tools/uniffi-bindgen"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "Apache-2.0"
+repository = "https://github.com/Hasan3301-cyber/prohori"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+ed25519-dalek = "2"
+hex = "0.4"
+proptest = "1"
+# Pinned to a minor version: the FFI scaffolding and the generated Kotlin must come from
+# the same uniffi, and a silent minor bump would change the ABI under the .so.
+uniffi = { version = "0.32", default-features = false }
+
+# Safety code should be as loud as possible about the mistakes that matter here.
+[workspace.lints.rust]
+unsafe_code = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+# An unwrap in the red-flag path is a crash in front of a dying patient.
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+indexing_slicing = "warn"

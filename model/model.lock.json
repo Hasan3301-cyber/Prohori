@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "base": {
+    "repository": "Qwen/Qwen3-1.7B-GGUF",
+    "revision": "90862c4b9d2787eaed51d12237eafdfe7c5f6077",
+    "file": "Qwen3-1.7B-Q8_0.gguf",
+    "bytes": 1834426016,
+    "sha256": "061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a",
+    "url": "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/90862c4b9d2787eaed51d12237eafdfe7c5f6077/Qwen3-1.7B-Q8_0.gguf?download=true"
+  },
+  "llama_cpp": {
+    "release": "b10516",
+    "commit": "b95502ba9aa0eb73a2f4fc8878d7fbe6a847a0b9",
+    "windows_cpu_asset": "llama-b10516-bin-win-cpu-x64.zip",
+    "windows_cpu_bytes": 18506923,
+    "windows_cpu_sha256": "fbbbc55e0eb2e1b07f9dcb9488616c98ed47d9003b90e15e7c8c7812c4307cd3",
+    "windows_cpu_url": "https://github.com/ggml-org/llama.cpp/releases/download/b10516/llama-b10516-bin-win-cpu-x64.zip"
+  },
+  "quantization": {
+    "source_type": "Q8_0",
+    "type": "Q4_K_M",
+    "flags": [
+      "--allow-requantize",
+      "--leave-output-tensor"
+    ],
+    "output": "Qwen3-1.7B-Q4_K_M.gguf",
+    "maximum_bytes": 1500000000
+  }
+}

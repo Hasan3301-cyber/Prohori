@@ -1,0 +1,95 @@
+{
+  "id": "cpr.adult",
+  "version": "1.1.0",
+  "title": "Not breathing — push on the chest",
+  "applies_to": "An adult or a child over 8 who does not answer you and is not breathing normally.",
+  "also_called": [
+    "cpr",
+    "cardiac arrest",
+    "chest compressions",
+    "not breathing",
+    "no pulse",
+    "collapsed",
+    "heart stopped",
+    "resuscitation",
+    "defibrillator"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "European Resuscitation Council Guidelines 2021: Basic Life Support",
+      "section": "Adult basic life support sequence",
+      "url": "https://cprguidelines.eu/"
+    },
+    {
+      "source": "American Heart Association Guidelines for CPR and ECC 2020",
+      "section": "Adult Basic Life Support: compression-only CPR for lay rescuers",
+      "url": "https://cpr.heart.org/"
+    },
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Unresponsive and abnormal breathing",
+      "url": "https://www.globalfirstaidcentre.org/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Tap their shoulders and shout their name. Ask loudly if they are okay."
+    },
+    {
+      "n": 2,
+      "kind": "assessment",
+      "text": "If they do not answer, look at their chest for up to 10 seconds. Normal breathing means the chest rises and falls. Slow gasping is not normal breathing."
+    },
+    {
+      "n": 3,
+      "kind": "escalation",
+      "text": "Call for help now. Put the phone on speaker and set it down so both your hands are free."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Lay them flat on their back on the floor or other hard surface."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "Put the heel of one hand in the middle of their chest. Put your other hand on top and lock your fingers together."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "Keep your arms straight and press straight down hard, about 5 cm deep. Let the chest come all the way back up after each press."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "Press at a steady speed of about 2 presses every second. That is faster than it feels natural, so count out loud to keep the speed up."
+    },
+    {
+      "n": 8,
+      "kind": "action",
+      "text": "Do not stop. Keep pressing until help takes over from you, or the person wakes up and starts breathing normally."
+    },
+    {
+      "n": 9,
+      "kind": "action",
+      "text": "If someone brings a defibrillator, switch it on and do exactly what the machine says out loud. Keep pressing until it tells you to stop."
+    }
+  ],
+  "do_not": [
+    "Do not stop to look for a pulse. It is hard to feel and looking for it wastes time the heart does not have.",
+    "Do not lift your hands off the chest between presses.",
+    "Do not stop because you hear or feel a rib move. Keep pressing.",
+    "Do not wait to be told you are allowed. If they are not breathing, pressing is the only thing that helps."
+  ],
+  "escalate_if": [
+    "They start breathing normally — stop pressing and roll them onto their side.",
+    "You are too tired to keep pressing hard — swap with someone else, and take less than 10 seconds to change over.",
+    "They are a baby or small child — press with two fingers or one hand, and press less deep."
+  ]
+}

@@ -1,0 +1,36 @@
+# Prohori P7 unmatched-query contract: guidance the model wrote itself.
+#
+# This grammar is used only when the red-flag table and retrieval both return nothing, so
+# there is no protocol to select and no source text to check a rendering against. The
+# corpus grammar in triage.gbnf constrains the model to *pick* an id; this one constrains
+# what it is physically able to *write*.
+#
+# The one difference from triage.gbnf that matters:
+#
+#   char ::= [^"\\\x7F\x00-\x1F0-9]
+#                              ^^^ digits removed from the permitted set
+#
+# llama.cpp applies the grammar token by token, so a digit is not rejected after the fact
+# — it can never be sampled. "Press for 10 minutes" is unreachable; "press until the
+# bleeding stops" is not. The `\uXXXX` escape alternative is deleted for the same reason:
+# `1` is the character `1`, and leaving that branch in would reopen the hole the
+# character class just closed.
+#
+# Rust still checks what a grammar cannot see — spelled-out numbers, drug names, procedure
+# verbs, invasive instructions, reading grade. See core/src/fallback.rs. Grammar-constrained
+# is not the same thing as trusted.
+#
+# call_now is the literal `true`. Nothing the model writes has the authority to tell
+# somebody not to call for help.
+
+root ::= "{" ws schema-version "," ws reassurance "," ws steps "," ws do-not "," ws call-now "}" ws
+
+schema-version ::= "\"schema_version\"" ws ":" ws "\"1\""
+reassurance ::= "\"reassurance\"" ws ":" ws sentence
+steps ::= "\"steps\"" ws ":" ws "[" ws sentence ("," ws sentence){0,5} "]"
+do-not ::= "\"do_not\"" ws ":" ws "[" ws (sentence ("," ws sentence){0,2})? "]"
+call-now ::= "\"call_now\"" ws ":" ws "true"
+
+sentence ::= "\"" char{1,140} "\""
+char ::= [^"\\\x7F\x00-\x1F0-9] | "\\" ["\\/bfnrt]
+ws ::= [ \t\n]{0,4}

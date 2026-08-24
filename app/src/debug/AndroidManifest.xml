@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Debug-only overlay. Merged into the debug variant and into nothing else.
+
+    Its only job is to attach a network-security config that permits cleartext to the
+    emulator's host loopback (10.0.2.2) and to localhost, so a relay running under `uvicorn`
+    on the development machine can be driven from the app without a TLS certificate. The
+    release variant never sees this file, so release traffic stays HTTPS-only by the
+    targetSdk-28 default.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+</manifest>

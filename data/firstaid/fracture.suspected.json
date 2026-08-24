@@ -1,0 +1,93 @@
+{
+  "id": "fracture.suspected",
+  "version": "1.0.0",
+  "title": "A bone that may be broken — hold it still",
+  "applies_to": "A limb that is painful, swollen, bent the wrong way, or cannot take any weight after a fall or a blow.",
+  "also_called": [
+    "broken bone",
+    "broken arm",
+    "broken leg",
+    "fracture",
+    "sprain",
+    "twisted ankle",
+    "dislocated shoulder",
+    "bone sticking out",
+    "cannot walk on it"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Fractures, sprains and immobilisation",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "Musculoskeletal injury and open fractures",
+      "url": "https://cprguidelines.eu/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Ask where it hurts. Look at the shape of the limb and compare it with the other side."
+    },
+    {
+      "n": 2,
+      "kind": "action",
+      "text": "Tell them to keep still. Support the limb with your hands in whatever position they are already holding it."
+    },
+    {
+      "n": 3,
+      "kind": "escalation",
+      "text": "Call for an ambulance if the limb is bent the wrong way, if bone is showing, or if they cannot move or feel the hand or the foot."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "If there is a wound, press a clean cloth around it, not down on the bone."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "Pad around the limb with folded cloth or a rolled blanket so it cannot move."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "For an arm, a sling made from a scarf can hold it against the chest. For a leg, pad both sides and leave it lying flat."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "Put something cold, wrapped in cloth, over the swelling for up to 20 minutes."
+    },
+    {
+      "n": 8,
+      "kind": "assessment",
+      "text": "Check the fingers or the toes every few minutes. They should stay warm and pink, and they should still feel your touch."
+    },
+    {
+      "n": 9,
+      "kind": "escalation",
+      "text": "Get them to a clinic for any bone you think may be broken, even a small one in a finger or a toe."
+    }
+  ],
+  "do_not": [
+    "Do not try to straighten the limb, and do not push a bone back in.",
+    "Do not give them anything to eat or drink, in case the hospital needs to put them to sleep.",
+    "Do not tie anything tightly around the limb. Tight binding cuts off the blood.",
+    "Do not let them walk on a leg you think is broken.",
+    "Do not put ice straight onto bare skin."
+  ],
+  "escalate_if": [
+    "The hand or foot below the injury goes white, blue, cold, or numb — loosen everything and call now.",
+    "It is the neck, the back, the hip, or the thigh — do not move them at all, and wait for the crew.",
+    "Bone is through the skin, or the wound will not stop bleeding — call for an ambulance.",
+    "They fell from higher than their own height, or a vehicle hit them — call an ambulance even if they say they are fine.",
+    "The limb is swelling fast and the pain is getting much worse — that needs a hospital today."
+  ]
+}

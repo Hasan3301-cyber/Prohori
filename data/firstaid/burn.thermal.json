@@ -1,0 +1,93 @@
+{
+  "id": "burn.thermal",
+  "version": "1.0.0",
+  "title": "A burn or scald — cool it with running water",
+  "applies_to": "Skin burned by heat: hot water, steam, cooking oil, a flame, or a hot surface.",
+  "also_called": [
+    "burn",
+    "scald",
+    "burnt hand",
+    "hot water burn",
+    "blister",
+    "sunburn",
+    "steam burn",
+    "oil splashed on me",
+    "should i put ice on it"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Burns: cooling and covering",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "Thermal burns: active cooling",
+      "url": "https://cprguidelines.eu/"
+    },
+    {
+      "source": "International Society for Burn Injuries, Practice Guidelines for Burn Care",
+      "section": "First aid and referral criteria",
+      "url": "https://isbiburn.org/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Look at where the burn is and how big it is. Their own flat hand is a rough guide to size."
+    },
+    {
+      "n": 2,
+      "kind": "action",
+      "text": "Get them away from the heat. Turn it off at the switch or the tap if you can do it safely."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Hold the burn under cool running water for 20 minutes. Start as soon as you can, and still do it even if some time has already passed."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "While it cools, take off rings, bangles, watches, and tight clothing near the burn. The skin will swell."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "After cooling, lay clean cling film loosely over the burn in one layer, or use a clean dry cloth."
+    },
+    {
+      "n": 6,
+      "kind": "assessment",
+      "text": "Keep the rest of the body warm. Cooling a large burn can chill the whole person."
+    },
+    {
+      "n": 7,
+      "kind": "escalation",
+      "text": "Get them to a doctor if the burn is bigger than their palm, is on the face, hands, feet, or over a joint, or if the skin looks white, brown, or leathery."
+    },
+    {
+      "n": 8,
+      "kind": "escalation",
+      "text": "Call an ambulance for a burn that goes all the way round an arm or a leg, or if they breathed in smoke or steam."
+    }
+  ],
+  "do_not": [
+    "Do not put ice, iced water, butter, oil, toothpaste, ash, or any cream on a burn.",
+    "Do not break blisters.",
+    "Do not pull off clothing that is stuck to the burn. Cool it with the cloth still in place.",
+    "Do not wrap cling film round and round a limb. Lay it on in one loose layer instead.",
+    "Do not use cotton wool or anything fluffy. The fibres stick to the burn."
+  ],
+  "escalate_if": [
+    "They are coughing, hoarse, or have soot around the nose or mouth — the airway may be burned. Call now.",
+    "The burn came from electricity — the injury goes deeper than it looks. Get them seen even if the skin looks fine.",
+    "They start shivering, look pale, or get sleepy — say this on the phone.",
+    "It is a baby, a small child, or an older adult — get them seen even for a small burn.",
+    "The burn came from a chemical — keep rinsing with running water and tell the crew what it was."
+  ]
+}

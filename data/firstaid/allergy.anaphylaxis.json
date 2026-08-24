@@ -1,0 +1,87 @@
+{
+  "id": "allergy.anaphylaxis",
+  "version": "1.0.0",
+  "title": "Bad allergy reaction — swelling and trouble breathing",
+  "applies_to": "Someone who ate, touched, or was stung by something they react badly to, and whose face, lips, or throat is swelling, or who is finding it hard to breathe.",
+  "also_called": [
+    "epipen",
+    "epi pen",
+    "allergic reaction",
+    "anaphylaxis",
+    "throat swelling",
+    "peanut allergy",
+    "bee sting reaction",
+    "hives",
+    "food allergy"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "Anaphylaxis",
+      "url": "https://cprguidelines.eu/"
+    },
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Severe allergic reaction",
+      "url": "https://www.globalfirstaidcentre.org/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Look at their face, lips, and tongue. Ask if their throat feels tight."
+    },
+    {
+      "n": 2,
+      "kind": "escalation",
+      "text": "Call for an ambulance now. Say the word allergy, and say the swelling is getting worse."
+    },
+    {
+      "n": 3,
+      "kind": "assessment",
+      "text": "Ask if they carry an emergency allergy pen that a doctor gave them. Ask them to point to where it is."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Help them use their own pen. Press it firmly into the outer thigh and hold it there for as long as the label on it says."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "Help them lie flat with their legs raised. If breathing is hard, let them sit up instead."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "Loosen tight clothing at the neck and the waist."
+    },
+    {
+      "n": 7,
+      "kind": "assessment",
+      "text": "Stay with them. Keep watching their breathing until help arrives."
+    },
+    {
+      "n": 8,
+      "kind": "escalation",
+      "text": "If they are no better after 5 minutes and a second pen is there, use it the same way and tell the crew."
+    }
+  ],
+  "do_not": [
+    "Do not let them stand up or walk about. Standing can make this much worse very fast.",
+    "Do not wait to see whether it settles on its own.",
+    "Do not give them anything to eat or drink.",
+    "Do not put anything in their mouth while the throat is swelling.",
+    "Do not throw the used pen away. Give it to the ambulance crew."
+  ],
+  "escalate_if": [
+    "They stop answering you and stop breathing normally — start pushing on the chest.",
+    "Their breathing gets worse, or the lips go blue or grey — say this on the phone right away.",
+    "They were stung inside the mouth or the throat — tell the crew, because the airway can close fast.",
+    "They feel faint or their skin goes cold and clammy — keep them lying flat with the legs up."
+  ]
+}

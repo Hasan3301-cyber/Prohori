@@ -1,0 +1,89 @@
+{
+  "id": "choking.adult",
+  "version": "1.1.0",
+  "title": "Choking — hit the back, then pull the belly",
+  "applies_to": "Someone with food or an object blocking their throat, who cannot cough, speak, or breathe.",
+  "also_called": [
+    "choking",
+    "food stuck in throat",
+    "cannot cough",
+    "something in the throat",
+    "back blows",
+    "heimlich",
+    "swallowed a coin",
+    "child choking"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "European Resuscitation Council Guidelines 2021: Basic Life Support",
+      "section": "Foreign body airway obstruction in adults",
+      "url": "https://cprguidelines.eu/"
+    },
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Choking",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "American Heart Association Guidelines for CPR and ECC 2020",
+      "section": "Relief of foreign-body airway obstruction",
+      "url": "https://cpr.heart.org/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Ask them: are you choking? If they can cough, speak, or breathe, tell them to keep coughing and stay with them."
+    },
+    {
+      "n": 2,
+      "kind": "escalation",
+      "text": "If they cannot cough, speak, or breathe, shout for help and get someone to call for an ambulance now."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Stand to the side and slightly behind them. Hold their chest with one hand and lean them forward so the object can come out of the mouth."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Hit them firmly between the shoulder blades with the heel of your other hand. Do this up to 5 times."
+    },
+    {
+      "n": 5,
+      "kind": "assessment",
+      "text": "Look after each hit. Stop as soon as the object comes out or they start breathing."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "If the hits did not work, stand behind them and put both arms around their middle. Make a fist and place it just above the belly button."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "Hold your fist with your other hand and pull sharply inwards and upwards. Do this up to 5 times."
+    },
+    {
+      "n": 8,
+      "kind": "action",
+      "text": "Keep going: 5 hits on the back, then 5 pulls on the belly, until the object comes out or help arrives."
+    }
+  ],
+  "do_not": [
+    "Do not put your fingers into their mouth to feel for the object. You can push it further down.",
+    "Do not slap them on the back while they are sitting upright and coughing well. A good cough shifts more than you can.",
+    "Do not pull on the belly of a baby under 1 year old. Support them face down along your arm and hit the back instead.",
+    "Do not pull on the belly of a pregnant person, or of someone too large for you to reach around. Pull on the lower chest instead."
+  ],
+  "escalate_if": [
+    "They stop answering you — lower them to the floor, call for help, and start pushing on the chest.",
+    "The object comes out but they still cannot breathe well — keep them sitting up and get them to hospital.",
+    "You pulled on their belly and it worked — they still need to be checked at a hospital, because the pull can hurt the inside."
+  ]
+}

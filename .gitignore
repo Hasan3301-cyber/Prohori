@@ -1,0 +1,90 @@
+# --- Secrets -----------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+local.properties
+signing.properties
+
+# --- Android / Gradle --------------------------------------------------------
+*.apk
+*.aab
+*.ap_
+*.dex
+.gradle/
+.kotlin/
+build/
+captures/
+.cxx/
+app/release/
+app/debug/
+.externalNativeBuild/
+*.hprof
+# Not ignored, on purpose: gradle/wrapper/gradle-wrapper.jar is the pinned bootstrapping
+# tool a clean checkout and CI use.
+# The generated uniffi bindings are covered by build/ above; they are never committed,
+# because a committed binding can disagree with the .so beside it.
+
+# --- Rust --------------------------------------------------------------------
+target/
+**/*.rs.bk
+Cargo.lock.orig
+
+# --- Model weights and training artefacts ------------------------------------
+# Never commit weights. Track the recipe, not the 1.5 GB output.
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+model/checkpoints/
+model/runs/
+model/.cache/
+model/artifacts/
+model/benchmarks/private/
+wandb/
+# Generated training data. The recipe is the artefact; a stale generated copy can silently
+# disagree with the reviewed corpus beside it.
+model/datasets/p5/
+
+# Pinned and fetched by tools/fetch-llama.ps1. Track the commit in Gradle and the fetch
+# recipe, not llama.cpp's large upstream checkout.
+third_party/llama.cpp/
+
+# --- City packs and map extracts ---------------------------------------------
+# Built artefacts. Track the build script and the manifest schema instead.
+data/packs/
+# The local demo signing key is a private key: ignored by name, and never the key that signs
+# a release pack. Named explicitly rather than as `*.hex`, because the bundled
+# `app/src/main/assets/city-pack/ruet-demo/verification-key.hex` is a *public* key the app
+# ships and must stay tracked — without it the importer cannot verify the demo pack.
+data/packs/.demo-signing-key.hex
+*.osm.pbf
+*.graph
+!app/src/main/assets/city-pack/ruet-demo/roads.graph
+*.mbtiles
+
+# --- Python (training + dataset tooling) -------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# --- Editors / OS ------------------------------------------------------------
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Private project-management and local evidence --------------------------
+PLAN.md
+plan/
+.preview/
+docs/
+**/*evidence*.json
+**/*benchmark*.json

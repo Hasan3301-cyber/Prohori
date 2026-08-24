@@ -1,0 +1,96 @@
+{
+  "id": "drowning.rescue",
+  "version": "1.0.0",
+  "title": "Pulled from the water — check the breathing first",
+  "applies_to": "Someone who has been under water and is now out of it, whether or not they are awake.",
+  "also_called": [
+    "drowning",
+    "drowned",
+    "fell in the pool",
+    "pulled from the water",
+    "near drowning",
+    "fell in the river",
+    "went under water",
+    "cannot swim"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "European Resuscitation Council Guidelines 2021: Basic Life Support",
+      "section": "Drowning: rescue breaths before compressions",
+      "url": "https://cprguidelines.eu/"
+    },
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Drowning and water rescue",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "International Life Saving Federation, Statement on Resuscitation of the Drowning Victim",
+      "section": "Reach, throw, do not go",
+      "url": "https://www.ilsf.org/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Look before you move. If going in would put you in danger, stay on land and reach or throw something out to them."
+    },
+    {
+      "n": 2,
+      "kind": "escalation",
+      "text": "Call for help now, or shout for someone else to call while you work."
+    },
+    {
+      "n": 3,
+      "kind": "assessment",
+      "text": "Once they are out of the water, tap their shoulders and shout. Look at the chest for up to 10 seconds."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "If the chest is not rising and falling normally, lay them flat on their back on hard ground."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "Tilt their head back, lift the chin, pinch the nose shut, and blow into the mouth 5 times. Each blow takes about 1 second and should make the chest rise."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "Then put the heel of one hand in the middle of the chest and press straight down hard, about 5 cm deep, about 2 presses every second. Keep going."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "If they are breathing normally, roll them onto their side so water and sick can drain out of the mouth."
+    },
+    {
+      "n": 8,
+      "kind": "action",
+      "text": "Get them out of wet clothes if you can, and cover them to keep them warm."
+    },
+    {
+      "n": 9,
+      "kind": "escalation",
+      "text": "Make sure a doctor sees them even if they now seem completely fine. Water in the chest can cause trouble hours later."
+    }
+  ],
+  "do_not": [
+    "Do not press on the belly or hold them upside down to get water out. It does not work, and it makes them sick.",
+    "Do not go into deep, cold, or fast water to reach them unless you are trained for it.",
+    "Do not stop pushing on the chest because they look grey or feel cold.",
+    "Do not let them walk home alone afterwards.",
+    "Do not send anyone into the water alone. One person drowning becomes two that way."
+  ],
+  "escalate_if": [
+    "They cough, wheeze, or breathe fast later in the day — get them to a doctor at once.",
+    "They were in cold water for a long time — keep pushing on the chest, and tell the crew how long they were in.",
+    "You cannot get them out of the water — keep their face above the water and wait for trained help.",
+    "They dived in, or fell from a height — treat the neck as hurt and try not to bend it."
+  ]
+}

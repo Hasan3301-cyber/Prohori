@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Prohori.
+
+    This file requests network plus foreground location permissions, and it is worth being precise about
+    what that does and does not buy, because a comment that overstates the privacy posture is
+    worse than no comment at all.
+
+    INTERNET supports LocationIQ discovery/routing and the online hospital-confirmation
+    channel. When the operator sends an alert, the app sends case id, hospital id, specialty,
+    ETA, and a tested body to the configured relay or personal bot, then polls that case
+    for the hospital's YES or NO. The alert carries no symptom text, coordinates, or name; see
+    prohori_core::confirmation::Confirmation::online_body and its test
+    nothing_leaving_the_device_contains_patient_text. Nothing is sent unless the operator asks
+    for it, and every other feature works with the radio off.
+
+    INTERNET is normal, not dangerous: it is granted at install and has no runtime prompt, so
+    unlike CALL_PHONE it cannot be denied in a way that turns a working button into a dead one.
+
+    What is still absent, and why:
+
+      * ACCESS_FINE_LOCATION and ACCESS_COARSE_LOCATION are foreground-only and requested
+        at runtime only inside Online mode. No background location is requested.
+      * No SEND_SMS, READ_SMS or RECEIVE_SMS. The offline channel hands a pre-filled message
+        to the user's own SMS app via ACTION_SENDTO, so the app never reads the inbox and
+        never sends silently. Reading the inbox is also how a reply could be faked.
+      * No CALL_PHONE. Dialing uses ACTION_DIAL, which opens the dialer pre-filled and needs
+        no permission. ACTION_CALL would place the call one tap sooner, needs a runtime grant
+        that can be denied, and cannot dial emergency numbers on most builds. One extra tap
+        beats a button that fails when it matters.
+      * No READ_PHONE_STATE. The country comes from TelephonyManager.getSimCountryIso() and
+        the device locale, neither of which is permission-gated, and the user can override it.
+      * No storage access. The first-aid corpus is compiled into libprohori_ffi.so, so
+        nothing is read from disk and nothing is downloaded.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        The relay call and the per-case poll. Cleartext is off in release
+        (usesCleartextTraffic is false by default from targetSdk 28), and the debug-only
+        network-security-config below narrows the exception to loopback.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Foreground-only location for Online mode. No background location is requested. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- So the dialer resolves on API 30+ package-visibility rules. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Prohori">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Prohori"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

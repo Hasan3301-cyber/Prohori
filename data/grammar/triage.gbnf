@@ -1,0 +1,21 @@
+# Prohori P2 constrained intake contract.
+#
+# Property order is fixed deliberately. llama.cpp applies this grammar token by token,
+# so malformed JSON and out-of-vocabulary enum values cannot be sampled. Rust still
+# validates lengths, protocol existence, and the deterministic severity floor after
+# generation; grammar-constrained is not the same thing as trusted.
+
+root ::= "{" ws schema-version "," ws severity "," ws protocol-id "," ws age-band "," ws specialty "," ws symptoms "," ws emergency "}" ws
+
+schema-version ::= "\"schema_version\"" ws ":" ws "\"1\""
+severity ::= "\"severity\"" ws ":" ws ("\"self_care\"" | "\"standard\"" | "\"urgent\"" | "\"critical\"")
+protocol-id ::= "\"protocol_id\"" ws ":" ws ("null" | protocol)
+protocol ::= "\"allergy.anaphylaxis\"" | "\"bleeding.severe\"" | "\"breathing.distress\"" | "\"burn.thermal\"" | "\"chest.pain\"" | "\"choking.adult\"" | "\"cpr.adult\"" | "\"dehydration.diarrhoea\"" | "\"drowning.rescue\"" | "\"electric.shock\"" | "\"fracture.suspected\"" | "\"head.injury\"" | "\"heat.illness\"" | "\"poisoning.swallowed\"" | "\"seizure.active\"" | "\"snake.bite\"" | "\"stroke.suspected\"" | "\"unresponsive.breathing\""
+age-band ::= "\"age_band\"" ws ":" ws ("\"infant\"" | "\"child\"" | "\"adult\"" | "\"older_adult\"" | "\"unknown\"")
+specialty ::= "\"specialty\"" ws ":" ws ("\"general_emergency\"" | "\"cardiac\"" | "\"neurology\"" | "\"trauma\"" | "\"toxicology\"" | "\"respiratory\"" | "\"burns\"" | "\"unknown\"")
+symptoms ::= "\"symptoms\"" ws ":" ws "[" ws (string ("," ws string){0,7})? "]"
+emergency ::= "\"needs_emergency_services\"" ws ":" ws ("true" | "false")
+
+string ::= "\"" char{1,80} "\""
+char ::= [^"\\\x7F\x00-\x1F] | "\\" (["\\/bfnrt] | "u" [0-9a-fA-F]{4})
+ws ::= [ \t\n]{0,4}

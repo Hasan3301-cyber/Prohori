@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The API 24–25 launcher icon. `mipmap-anydpi-v26/ic_launcher.xml` supersedes this on
+    newer platforms.
+
+    One drawable rather than a layer-list over the adaptive layers, because a legacy icon is
+    not masked: it has to supply its own shape and use the whole square, so the shield sits
+    larger here than it does inside the adaptive foreground's safe circle. Same marks, and
+    the same reason for avoiding a cross — see `ic_launcher_foreground.xml`.
+
+    A vector rather than the usual set of PNGs. Nothing here needs raster: the icon is flat
+    shapes, and one XML file cannot go out of sync with itself across five density buckets.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#B3261E"
+        android:pathData="M12,0 h84 a12,12 0 0 1 12,12 v84 a12,12 0 0 1 -12,12 h-84 a12,12 0 0 1 -12,-12 v-84 a12,12 0 0 1 12,-12 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,14 L86,26 L86,56 C86,76 72,90 54,98 C36,90 22,76 22,56 L22,26 Z" />
+    <path
+        android:pathData="M30,58 L42,58 L47,45 L55,72 L61,58 L78,58"
+        android:strokeColor="#B3261E"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

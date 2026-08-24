@@ -1,0 +1,100 @@
+{
+  "id": "dehydration.diarrhoea",
+  "version": "1.0.0",
+  "title": "Watery diarrhoea or vomiting — put the water back in",
+  "applies_to": "Someone with watery diarrhoea or repeated vomiting, who is losing more water than they are taking in.",
+  "also_called": [
+    "diarrhoea",
+    "diarrhea",
+    "loose motion",
+    "vomiting",
+    "throwing up",
+    "dehydration",
+    "food poisoning",
+    "stomach bug",
+    "ors",
+    "cholera",
+    "dry mouth no urine"
+  ],
+  "reading_grade": 3,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO Recommendations on the Clinical Management of Acute Diarrhoea",
+      "section": "Oral rehydration therapy and home-made solution",
+      "url": "https://www.who.int/"
+    },
+    {
+      "source": "WHO and UNICEF Joint Statement on the Clinical Management of Acute Diarrhoea",
+      "section": "Plan A: treat diarrhoea at home",
+      "url": "https://www.who.int/"
+    },
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Dehydration",
+      "url": "https://www.globalfirstaidcentre.org/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Look for the signs of losing too much water. A dry mouth. Little or no urine. Sunken eyes. No tears when a child cries. Being very sleepy."
+    },
+    {
+      "n": 2,
+      "kind": "action",
+      "text": "Give oral rehydration salts. They are sold in packets, marked ORS. Mix one into clean water, exactly as the packet says."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Give it in small sips. A spoonful every few minutes. Small sips stay down when a whole cup will not."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "If they bring it back up, wait 10 minutes. Then start the small sips again."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "If you have no packets, use 1 litre of clean water. Stir in 6 level teaspoons of sugar. Stir in half a level teaspoon of salt. Measure it well. Too much salt makes this worse."
+    },
+    {
+      "n": 6,
+      "kind": "assessment",
+      "text": "Count how much they drink. Count how often they pass urine. Those two numbers tell you if this is working."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "Keep feeding a child their normal food as well. Keep feeding a baby at the breast, as often as it wants."
+    },
+    {
+      "n": 8,
+      "kind": "escalation",
+      "text": "Take them to a clinic if there is blood in what comes out. Go too if the vomiting will not stop, or they cannot keep any liquid down."
+    },
+    {
+      "n": 9,
+      "kind": "escalation",
+      "text": "Call for help now if they are too sleepy to drink. Call now if they have passed no urine all day, or are breathing fast."
+    }
+  ],
+  "do_not": [
+    "Do not give fizzy drinks, sweet juice, or energy drinks. Sugary liquid pulls more water into the gut and makes it worse.",
+    "Do not mix the salts with more or less water than the packet says. Too strong is dangerous, especially for a child.",
+    "Do not give a young child anything to stop the diarrhoea.",
+    "Do not stop giving liquid because they keep being sick. Keep offering small sips.",
+    "Do not use water you would not drink yourself. Boil it and let it cool if you are unsure."
+  ],
+  "escalate_if": [
+    "They are a baby under 6 months, or an older adult — get them seen early rather than waiting.",
+    "They stop answering you properly, or the hands and feet go cold and blotchy — call for help now.",
+    "There is blood in the vomit or in the stool — they need a clinic today.",
+    "The diarrhoea is like white rice water and pouring out — say those words on the phone. That spreads to other people.",
+    "You have no clean water at all — tell the clinic that when you call, because it changes what they send."
+  ]
+}

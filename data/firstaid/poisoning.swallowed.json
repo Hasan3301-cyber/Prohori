@@ -1,0 +1,98 @@
+{
+  "id": "poisoning.swallowed",
+  "version": "1.0.0",
+  "title": "Swallowed something poisonous — do not make them sick",
+  "applies_to": "Anyone who has swallowed, breathed in, or spilled on themselves something that is not food.",
+  "also_called": [
+    "poison",
+    "poisoning",
+    "swallowed bleach",
+    "drank kerosene",
+    "overdose",
+    "ate pesticide",
+    "swallowed cleaner",
+    "child ate something",
+    "took too many pills"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Poisoning",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "WHO Guidelines for Establishing a Poison Centre",
+      "section": "First aid advice for poisoning",
+      "url": "https://www.who.int/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: Special Circumstances",
+      "section": "Poisoning: rescuer safety and initial care",
+      "url": "https://cprguidelines.eu/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Find out what they swallowed, how much, and how long ago. Keep the container, and keep whatever is left."
+    },
+    {
+      "n": 2,
+      "kind": "escalation",
+      "text": "Call for an ambulance, or call the poison line if your area has one. Read the name off the container to them, word for word."
+    },
+    {
+      "n": 3,
+      "kind": "assessment",
+      "text": "Check whether they are awake and whether the chest is rising and falling normally."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Wipe out the mouth with a wet cloth, or let them rinse and spit. Do not let them swallow the rinse."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "Do exactly what the ambulance or the poison line tells you about giving water. The right answer is different for a cleaner, for fuel, and for something from a packet."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "If they stop answering you but are breathing normally, roll them onto their side with the head tipped a little down."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "If it went on the skin or in an eye, take off the wet clothing and rinse with plenty of clean running water for 20 minutes."
+    },
+    {
+      "n": 8,
+      "kind": "assessment",
+      "text": "Stay with them and keep watching the breathing. Poisons often take an hour or more to show what they do."
+    },
+    {
+      "n": 9,
+      "kind": "escalation",
+      "text": "Take the container, or a photo of the label, with you to the hospital. It tells the doctors what to give."
+    }
+  ],
+  "do_not": [
+    "Do not make them sick, by any means at all. Bringing it back up burns the throat a second time.",
+    "Do not give them salt water, milk, or anything to drink unless you have been told to.",
+    "Do not put your fingers in their mouth.",
+    "Do not breathe in the fumes yourself. Open the windows, or take them into fresh air.",
+    "Do not wait to see whether anything happens. Make the call while they still look well."
+  ],
+  "escalate_if": [
+    "They stop breathing normally, or their lips turn blue — start pushing on the chest and keep the phone on.",
+    "They start shaking or jerking — protect the head and let it run its course.",
+    "Their mouth or throat is burned, or they are drooling and cannot swallow — that is a straight-to-hospital sign.",
+    "They are sweating heavily, drooling, and the black centres of the eyes have gone very small — say the word pesticide on the phone.",
+    "It was a child, and you cannot be sure how much is gone — always assume the whole container."
+  ]
+}

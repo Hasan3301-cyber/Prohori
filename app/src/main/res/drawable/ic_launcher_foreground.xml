@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A shield with a pulse line through it. Deliberately not a cross.
+
+    A red cross on white is the emblem of the Red Cross, protected by the Geneva
+    Conventions and by national law in most countries, and a white cross on red is the
+    Swiss coat of arms, protected by the same article. Both are the obvious first idea for
+    a medical icon and both are unavailable to this app. A shield fits the name — prohori
+    means guardian — and the ECG line is the medical mark with no emblem attached to it.
+
+    Everything is inside the centred 72dp safe circle, so no launcher mask clips it.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,24 L78,33 L78,54 C78,68 68,79 54,86 C40,79 30,68 30,54 L30,33 Z" />
+    <path
+        android:pathData="M37,55 L45,55 L49,45 L55,66 L60,55 L71,55"
+        android:strokeColor="#B3261E"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

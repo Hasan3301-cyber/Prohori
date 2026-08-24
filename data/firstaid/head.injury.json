@@ -1,0 +1,92 @@
+{
+  "id": "head.injury",
+  "version": "1.0.0",
+  "title": "A knock on the head — watch them for hours, not minutes",
+  "applies_to": "Anyone who has hit their head in a fall, a crash, a fight, or a game.",
+  "also_called": [
+    "head injury",
+    "hit my head",
+    "concussion",
+    "bump on the head",
+    "knocked out",
+    "head wound",
+    "banged my head",
+    "fell and hit head"
+  ],
+  "reading_grade": 3,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Head injury and concussion",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "Head injury, cervical spine motion restriction",
+      "url": "https://cprguidelines.eu/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Ask them their name, where they are, and what happened. Muddled answers matter far more than the size of the lump."
+    },
+    {
+      "n": 2,
+      "kind": "escalation",
+      "text": "Call for an ambulance if they blacked out. Call if they cannot remember the knock, are being sick again and again, or are getting harder to wake."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Keep them sitting or lying still and quiet, with the head and shoulders raised a little."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "If the scalp is bleeding, press a clean cloth firmly on it. Scalp wounds bleed a lot and still press to a stop."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "Put something cold, wrapped in cloth, on a lump for up to 20 minutes."
+    },
+    {
+      "n": 6,
+      "kind": "assessment",
+      "text": "Watch them closely for the next 24 hours. Someone should stay with them. That person must be able to wake them easily."
+    },
+    {
+      "n": 7,
+      "kind": "assessment",
+      "text": "Watch for these signs. A headache that keeps growing. Being sick. Blurred sight. Slurred speech. Weakness down one side."
+    },
+    {
+      "n": 8,
+      "kind": "escalation",
+      "text": "Go to a hospital at once if any of those signs show up. Go even if it is a day or two later."
+    },
+    {
+      "n": 9,
+      "kind": "escalation",
+      "text": "Get them seen today anyway if they are very young or very old. Go too if they had been drinking, or take something that thins the blood."
+    }
+  ],
+  "do_not": [
+    "Do not let them go back to a game, to work at height, or behind the wheel.",
+    "Do not leave them on their own for the first 24 hours.",
+    "Do not press hard on a soft or dented part of the skull.",
+    "Do not move them if the neck may be hurt, unless they are choking or being sick.",
+    "Do not let them drink alcohol while you are watching them."
+  ],
+  "escalate_if": [
+    "Clear fluid or blood runs from the nose or from an ear — call an ambulance now.",
+    "One pupil looks bigger than the other, or they cannot stay awake — call now.",
+    "They start shaking or jerking — protect the head and let it run its course.",
+    "They stop answering you but are breathing normally — roll them onto their side.",
+    "They become angry, restless, or make no sense — that is a warning sign, not bad behaviour."
+  ]
+}

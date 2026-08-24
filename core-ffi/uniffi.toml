@@ -1,0 +1,17 @@
+# uniffi bindings configuration for the Kotlin shell.
+#
+# Set here rather than passed on the command line so a regenerated binding cannot land in
+# the wrong package because someone typed a different flag. The generator finds this file
+# through cargo metadata; see `tools/uniffi-bindgen/Cargo.toml` for the feature that makes
+# that work.
+
+[bindings.kotlin]
+package_name = "org.prohori.core"
+
+# Generated records become `val` instead of `var`. A card that crossed the boundary is a
+# copy of verified medical text, and the UI has no business editing a step in place.
+generate_immutable_records = true
+
+# Android-flavoured runtime: the cleaner that works on API levels below 33, rather than
+# java.lang.ref.Cleaner.
+android = true

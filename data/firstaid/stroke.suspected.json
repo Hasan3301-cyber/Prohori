@@ -1,0 +1,97 @@
+{
+  "id": "stroke.suspected",
+  "version": "1.0.0",
+  "title": "Signs of a stroke — note the time and call now",
+  "applies_to": "Someone whose face has dropped on one side, whose arm has gone weak, or whose speech has suddenly changed.",
+  "also_called": [
+    "stroke",
+    "face drooping",
+    "slurred speech",
+    "weak on one side",
+    "cannot lift arm",
+    "mini stroke",
+    "brain attack",
+    "mouth pulling to one side"
+  ],
+  "reading_grade": 3,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Stroke recognition using the FAST check",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "Recognition of acute stroke",
+      "url": "https://cprguidelines.eu/"
+    },
+    {
+      "source": "World Stroke Organization, Global Stroke Guidelines and Action Plan",
+      "section": "Public recognition and time to treatment",
+      "url": "https://www.world-stroke.org/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Ask them to smile. Look for one side of the mouth or face hanging down."
+    },
+    {
+      "n": 2,
+      "kind": "assessment",
+      "text": "Ask them to lift both arms and hold them up. Look for one arm drifting back down."
+    },
+    {
+      "n": 3,
+      "kind": "assessment",
+      "text": "Ask them to say a simple sentence after you. Listen for slurred or muddled words."
+    },
+    {
+      "n": 4,
+      "kind": "escalation",
+      "text": "If even one of those three looks wrong, call for an ambulance now and say you think it is a stroke."
+    },
+    {
+      "n": 5,
+      "kind": "assessment",
+      "text": "Look at a clock. Note the time the signs started, or the last time they were their normal self."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "Help them sit or lie down with the head and shoulders raised a little. If they are being sick, roll them onto their side."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "Loosen tight clothing. Keep the room quiet and keep them warm."
+    },
+    {
+      "n": 8,
+      "kind": "assessment",
+      "text": "Stay with them and keep watching. The signs can get worse quickly."
+    },
+    {
+      "n": 9,
+      "kind": "escalation",
+      "text": "Say that noted time out loud to the ambulance crew. It decides what treatment the hospital can still give."
+    }
+  ],
+  "do_not": [
+    "Do not give them anything to eat or drink. Swallowing is often not safe after a stroke.",
+    "Do not wait to see whether the signs pass off. The first hours decide how much can be saved.",
+    "Do not let them drive, and do not let them go to bed to sleep it off.",
+    "Do not let them walk about if one side is weak. They will fall.",
+    "Do not give them anything to take for it. Only a hospital can tell which kind of stroke this is."
+  ],
+  "escalate_if": [
+    "They stop answering you and stop breathing normally — start pushing on the chest.",
+    "They are being sick, have the worst headache of their life, or start shaking — say this on the phone.",
+    "The signs go away on their own — they still need to be seen today. That can be a warning of a bigger one.",
+    "They are already being treated for a heart or blood problem — tell the crew that.",
+    "They have been out in strong heat and are hot to touch — start cooling them while you wait. Being overcome by heat can look like this."
+  ]
+}

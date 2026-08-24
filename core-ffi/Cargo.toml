@@ -1,0 +1,36 @@
+[package]
+name = "prohori-ffi"
+description = "uniffi boundary: the Kotlin shell's only view of the Rust core."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+# `cdylib` is what Android loads with System.loadLibrary. `lib` is kept so the crate is
+# also a normal Rust dependency — the bindings generator reads the built cdylib, and the
+# tests in this crate exercise the boundary types directly.
+name = "prohori_ffi"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+prohori-core = { path = "../core" }
+# MPL-2.0, per-file weak copyleft. It does not reach our Apache-2.0 sources, but the
+# generated Kotlin carries uniffi's runtime templates, so the licence has to be named in
+# the app's notices. See README.
+uniffi = { workspace = true }
+
+[dev-dependencies]
+uniffi = { workspace = true, features = ["bindgen-tests"] }
+# Test-only, and already in the lock file via `prohori-core`, so this adds an edge to the
+# graph and no new crates. The online-channel tests install a *signed* pack that binds a
+# Telegram chat, which means recomputing one digest and re-signing the manifest. Asserting
+# against an unverified pack would test the wrong thing: the whole point of the endpoint
+# living in the pack is that a signature stands behind it.
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+ed25519-dalek = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,68 @@
+{
+  "id": "unknown.emergency",
+  "version": "1.0.0",
+  "title": "We have no card for this — here is what helps in almost every emergency",
+  "applies_to": "Anyone hurt or suddenly unwell when this app has no card for what you typed.",
+  "also_called": [],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "General approach to a person who is ill or injured",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "General principles of first aid",
+      "url": "https://cprguidelines.eu/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Look around first. Do not walk into water, fire, traffic, or a building that may fall."
+    },
+    {
+      "n": 2,
+      "kind": "escalation",
+      "text": "Call for help now. Say where you are and say what you can see."
+    },
+    {
+      "n": 3,
+      "kind": "assessment",
+      "text": "Ask them what happened. If they cannot answer you, watch whether they are breathing normally."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Keep them still and keep them warm. Do not move them unless staying there will hurt them."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "Do not give them anything to eat or drink."
+    },
+    {
+      "n": 6,
+      "kind": "escalation",
+      "text": "If they stop answering you and stop breathing normally, push hard on the middle of the chest and do not stop."
+    },
+    {
+      "n": 7,
+      "kind": "action",
+      "text": "Stay with them. Keep telling them that help is coming."
+    }
+  ],
+  "do_not": [
+    "Do not give them medicine of any kind.",
+    "Do not let a crowd move them or crowd in around them.",
+    "Do not put anything in their mouth."
+  ],
+  "escalate_if": [
+    "They stop answering you, or their breathing changes — say that on the phone straight away.",
+    "The place you are in stops being safe — get yourself out first, then call again."
+  ]
+}

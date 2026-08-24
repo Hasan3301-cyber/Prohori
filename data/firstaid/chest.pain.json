@@ -1,0 +1,87 @@
+{
+  "id": "chest.pain",
+  "version": "1.0.0",
+  "title": "Chest pain that will not go away — sit still and call",
+  "applies_to": "An adult with pain, tightness, or heaviness in the chest lasting more than a few minutes, or spreading to an arm, the neck, the jaw, or the back.",
+  "also_called": [
+    "heart attack",
+    "chest pain",
+    "chest tightness",
+    "pain in my chest",
+    "crushing chest pain",
+    "angina",
+    "heavy chest",
+    "pain going down my arm"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "European Resuscitation Council Guidelines 2021: First Aid",
+      "section": "Chest pain of suspected cardiac origin",
+      "url": "https://cprguidelines.eu/"
+    },
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Chest pain and heart attack",
+      "url": "https://www.globalfirstaidcentre.org/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Ask where the pain is, how long it has lasted, and whether it spreads to an arm, the neck, or the jaw."
+    },
+    {
+      "n": 2,
+      "kind": "escalation",
+      "text": "Call for an ambulance now if it has lasted more than a few minutes. Say the words chest pain."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Stop them moving. Help them sit down on the floor, leaning back against something, with the knees bent."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Loosen tight clothing at the neck and the waist."
+    },
+    {
+      "n": 5,
+      "kind": "assessment",
+      "text": "Ask whether a doctor has already given them something to take for chest pain. If so, help them take their own, exactly as the label on it says."
+    },
+    {
+      "n": 6,
+      "kind": "action",
+      "text": "Keep them still. Keep talking to them calmly, even if they are frightened or angry."
+    },
+    {
+      "n": 7,
+      "kind": "assessment",
+      "text": "Stay beside them. Keep checking that they are awake and breathing normally."
+    },
+    {
+      "n": 8,
+      "kind": "escalation",
+      "text": "Unlock the door and move furniture out of the way so the crew can get to them."
+    }
+  ],
+  "do_not": [
+    "Do not let them drive themselves, and do not drive them yourself if an ambulance can come.",
+    "Do not give them anything to eat or drink.",
+    "Do not let them walk up stairs or carry anything.",
+    "Do not decide it is only indigestion because they are young or fit.",
+    "Do not give them anything of yours to take."
+  ],
+  "escalate_if": [
+    "They stop answering you and stop breathing normally — start pushing on the chest.",
+    "They go grey, sweaty, or sick, or say they feel they are about to die — say this on the phone at once.",
+    "The pain came on as a tearing feeling in the back — tell the crew those exact words.",
+    "They are short of breath as well, or their lips look blue — say so on the phone.",
+    "They faint, even for a moment — that changes how urgent this is."
+  ]
+}

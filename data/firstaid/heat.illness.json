@@ -1,0 +1,92 @@
+{
+  "id": "heat.illness",
+  "version": "1.0.0",
+  "title": "Overcome by heat — cool them down fast",
+  "applies_to": "Someone who has been in heat or working hard, and is now dizzy, sick, cramping, very hot, or confused.",
+  "also_called": [
+    "heat stroke",
+    "heat exhaustion",
+    "sunstroke",
+    "too hot",
+    "heat cramps",
+    "overheated",
+    "collapsed in the sun",
+    "working in the heat"
+  ],
+  "reading_grade": 4,
+  "reviewed_by": null,
+  "reviewed_at": null,
+  "citations": [
+    {
+      "source": "WHO and IFRC International First Aid, Resuscitation and Education Guidelines 2020",
+      "section": "Heat exhaustion and heat stroke",
+      "url": "https://www.globalfirstaidcentre.org/"
+    },
+    {
+      "source": "WHO Technical Brief: Heat and Health",
+      "section": "Recognising and cooling heat illness",
+      "url": "https://www.who.int/"
+    },
+    {
+      "source": "European Resuscitation Council Guidelines 2021: Special Circumstances",
+      "section": "Heat stroke: rapid cooling",
+      "url": "https://cprguidelines.eu/"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "kind": "assessment",
+      "text": "Listen to how they answer you. Being confused, or making no sense, is the sign that this has become dangerous."
+    },
+    {
+      "n": 2,
+      "kind": "action",
+      "text": "Move them into shade or a cool room straight away."
+    },
+    {
+      "n": 3,
+      "kind": "action",
+      "text": "Take off extra clothing and loosen the rest."
+    },
+    {
+      "n": 4,
+      "kind": "action",
+      "text": "Cool the skin with whatever you have. Pour or spray cool water over them, fan them, and put cold wet cloths under the arms, on the neck, and in the groin."
+    },
+    {
+      "n": 5,
+      "kind": "action",
+      "text": "If they are fully awake, let them sip cool water. Oral rehydration salts, sold in packets as ORS, are better if you have them."
+    },
+    {
+      "n": 6,
+      "kind": "escalation",
+      "text": "Call for an ambulance now if they are confused, cannot walk, have stopped sweating, keep being sick, or the skin is hot and dry."
+    },
+    {
+      "n": 7,
+      "kind": "assessment",
+      "text": "Keep cooling while you wait. Stop when they feel cool to touch and are answering you normally again."
+    },
+    {
+      "n": 8,
+      "kind": "assessment",
+      "text": "Keep them lying down and resting for the rest of the day, even once they feel better."
+    }
+  ],
+  "do_not": [
+    "Do not give anything to drink to someone who is confused or sleepy. They will choke on it.",
+    "Do not give drinks with alcohol or a lot of caffeine in them.",
+    "Do not stop cooling just because they say they feel better.",
+    "Do not send them back out to work or into the sun the same day.",
+    "Do not rub a cramping muscle hard. Stretch it gently instead."
+  ],
+  "escalate_if": [
+    "They stop making sense, start shaking, or stop answering you — this is heat stroke, and it kills. Call now.",
+    "They stop breathing normally — start pushing on the chest.",
+    "They are a small child, an older adult, or pregnant — call for help earlier rather than later.",
+    "Their urine has stopped, or has gone dark brown — tell the clinic. The muscles may be breaking down.",
+    "They were locked in a hot vehicle or a hot room — say that on the phone."
+  ]
+}

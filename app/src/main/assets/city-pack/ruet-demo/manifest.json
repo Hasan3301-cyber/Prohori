@@ -1,0 +1,27 @@
+{
+  "manifest": {
+    "schema_version": 1,
+    "pack_id": "bd-rajshahi-ruet-demo-open",
+    "city": "Rajshahi",
+    "country": "BD",
+    "version": 1,
+    "built_at_epoch_seconds": 1787284353,
+    "bbox": {
+      "south": 24.35,
+      "west": 88.58,
+      "north": 24.39,
+      "east": 88.64
+    },
+    "attribution": "DEMO TOPOLOGY — NOT FIELD CHECKED. Facility/contact: official RMCH pages; RUET referral context: official RUET page; coordinates: DGHS/OpenStreetMap. © OpenStreetMap contributors, ODbL.",
+    "field_checked": false,
+    "files": {
+      "conditions.snap": "3e65a1b790afecaaa06cfb20146d226d7a2455424a784546f0cb6000eec66111",
+      "emergency.json": "8433ba4ca563398f9e89abeead1a9fd5ac05b03a947aecb60efd66fd9be0f005",
+      "hospitals.json": "8f0b4cfa915ee67ddf65c4130d4064f1c6b65d4f705cd9feea8d29d3d6fae276",
+      "roads.graph": "766fa3269874935ff59e59b03af8479fce453c16bc1b82bce0272182158c35a0",
+      "shelters.json": "6b9f69170fd57f591d14d72ebfefe6b736bccd9ba4b8b3b3109695551e83d6ea",
+      "zones.geojson": "09335bfb612e420b3d54e53a36fc96befad94a88852373c751bfb34f3258f98b"
+    }
+  },
+  "signature": "e5362a6cbd2f1d11cc224105c0ecb9c31afb980e8fd56ce03f9972bd8ec7c59f2e7d5b3ae8d1aef5b186102b66e8bf8a211cb43a7f8a3877a722d6ef2977b701"
+}
