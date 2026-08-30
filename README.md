@@ -194,13 +194,13 @@ Important rules:
 - approximately 1.2 GB for the APK
 - at least 2.5–3 GB free during installation and first launch
 
-The latest published GitHub release is currently the earlier `v0.7.0-dev` evaluation build:
+The current `v1.0.0-rc1` debug-signed evaluation APK includes the bundled local model:
 
-**[Download the published evaluation APK](https://github.com/Hasan3301-cyber/Prohori/releases/download/v0.7.0-dev/prohori-v0.7.0-dev-debug.apk)**
+**[Download Prohori 1.0.0-rc1 evaluation APK](https://github.com/Hasan3301-cyber/Prohori/releases/download/v1.0.0-rc1/prohori-v1.0.0-rc1-evaluation.apk)**
 
-The source tree is `1.0.0-rc1` and contains newer functionality than that published artifact.
-Build the current source to evaluate the features described here. Do not attempt to install
-`app-release-unsigned.apk`; Android correctly rejects an unsigned release package.
+This 1.13 GB release asset is distributed through GitHub Releases because it is too large for
+normal Git history. Do not attempt to install `app-release-unsigned.apk`; Android correctly
+rejects an unsigned release package.
 
 For a locally built evaluation APK:
 
@@ -547,7 +547,6 @@ Current automated coverage includes:
 
 ## Current limitations
 
-- The GitHub release APK is older than the current `1.0.0-rc1` source.
 - A real production APK still requires the owner's protected signing key.
 - The APK is large because it includes a 1.1 GB local model; first launch needs space for both
   the APK and extracted model.
