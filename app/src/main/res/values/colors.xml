@@ -8,6 +8,4 @@
 <resources>
     <color name="prohori_surface">#FFF8F9F6</color>
     <color name="prohori_ink">#FF0A0A0A</color>
-    <!-- The launcher icon's field. Same value as ProhoriTheme's light `primary`. -->
-    <color name="prohori_primary">#FFB3261E</color>
 </resources>

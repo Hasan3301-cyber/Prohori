@@ -1,274 +1,313 @@
 # Prohori
 
-**Offline-first emergency guidance, nearby-hospital routing, and explicit hospital readiness confirmation for Android.**
+**Offline-first emergency guidance, private on-device AI, and parallel hospital coordination for Android.**
 
 [![CI](https://github.com/Hasan3301-cyber/Prohori/actions/workflows/ci-public.yml/badge.svg)](https://github.com/Hasan3301-cyber/Prohori/actions/workflows/ci-public.yml)
 ![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)
-![Rust](https://img.shields.io/badge/core-Rust-000000?logo=rust)
-![Kotlin](https://img.shields.io/badge/UI-Kotlin-7F52FF?logo=kotlin&logoColor=white)
+![Rust](https://img.shields.io/badge/safety_core-Rust-000000?logo=rust)
+![Kotlin](https://img.shields.io/badge/Android_UI-Kotlin-7F52FF?logo=kotlin&logoColor=white)
+![Version](https://img.shields.io/badge/source-1.0.0--rc1-C62828)
 
 > [!WARNING]
-> Prohori is an emergency-support prototype, not a medical device and not a replacement for emergency services, a clinician, or verified local hospital information. The bundled city route is a demonstration and is visibly marked **not field checked**. Generated AI guidance is constrained and filtered, but has not completed clinical certification.
+> Prohori is an emergency-support prototype. It is not a doctor, diagnostic system, medical
+> device, or replacement for emergency services and qualified clinicians. The bundled
+> first-aid cards cite public sources but currently record no clinician reviewer. The bundled
+> Rajshahi city pack is a visibly labelled, non-field-checked demonstration.
 
 ## Contents
 
-- [The problem](#the-problem)
-- [The solution](#the-solution)
-- [Main features](#main-features)
-- [How the system works](#how-the-system-works)
-- [Download and install](#download-and-install)
-- [User guide](#user-guide)
-- [Hospital and Telegram setup](#hospital-and-telegram-setup)
-- [Technology stack](#technology-stack)
-- [Project structure](#project-structure)
+- [Why Prohori exists](#why-prohori-exists)
+- [What the application provides](#what-the-application-provides)
+- [Safety model](#safety-model)
+- [How the three modes work](#how-the-three-modes-work)
+- [Hospital selection and confirmation](#hospital-selection-and-confirmation)
+- [Install and use](#install-and-use)
+- [Configuration](#configuration)
+- [Architecture and technology](#architecture-and-technology)
+- [Data, privacy, and security](#data-privacy-and-security)
 - [Build from source](#build-from-source)
-- [Testing](#testing)
-- [Privacy and security](#privacy-and-security)
-- [Known limitations](#known-limitations)
+- [Testing and release validation](#testing-and-release-validation)
+- [Current limitations](#current-limitations)
 
-## The problem
+## Why Prohori exists
 
-During a medical emergency, especially after floods, cyclones, network outages, or road disruption, a person may face several problems at once:
+During an emergency, a person may need to act while the internet is slow, roads are disrupted,
+and nearby hospitals are not answering. Several failures can happen together:
 
-- They may not know the correct first-aid action.
-- Internet access may be slow or completely unavailable.
-- The nearest hospital may not be able to accept the patient.
-- Contacting hospitals one at a time wastes critical minutes.
-- A geographically close hospital may take longer to reach because of road conditions.
-- A message that receives no reply must not be interpreted as hospital acceptance.
-- Cloud-only AI cannot help when the network is down and can expose sensitive information.
+- cloud-only AI becomes unavailable;
+- a person does not know the safest immediate first-aid action;
+- the geographically nearest hospital may not be the fastest by road;
+- the nearest hospital may not be ready for the required service;
+- contacting hospitals one at a time wastes time;
+- silence can be mistaken for acceptance;
+- sensitive symptom text can be exposed to unnecessary online services.
 
-Most navigation applications can locate a hospital, but they do not prove that the hospital has explicitly agreed to receive the patient. Most chat applications can provide general text, but they do not combine deterministic emergency rules, offline first aid, route analysis, and auditable hospital confirmation.
+Prohori combines local safety rules, cited offline guidance, a bundled local language model,
+nearby-facility discovery, six-way route comparison, and explicit hospital confirmation. The
+language model is never trusted to choose the hospital, lower urgency, or replace verified
+guidance.
 
-## The solution
+## What the application provides
 
-Prohori combines three independent capabilities in one Android application:
+| Capability | Implementation |
+|---|---|
+| Android application | Kotlin and Jetpack Compose UI with a Rust safety/routing core |
+| Offline emergency detection | Deterministic Rust red-flag rules run on every description |
+| Offline first aid | 18 embedded, cited, versioned protocols plus a safety-net card |
+| Private local AI | Bundled Qwen3 1.7B Q4 GGUF executed by llama.cpp on the phone |
+| Unknown-symptom fallback | Constrained local generation when no rule or protocol covers the report |
+| Emergency-aware chat | Red flags bypass free-form chat and show deterministic guidance verbatim |
+| Care-service suggestion | Coarse routing categories such as cardiac, trauma, burns, or respiratory emergency |
+| Nearby hospitals | LocationIQ Nearby from an explicitly requested foreground location |
+| Parallel route comparison | One Matrix request evaluates distance and ETA for up to six facilities |
+| Parallel alerts | Up to six registered hospital contacts are notified concurrently |
+| Readiness confirmation | Only an explicit `YES` for the matching case confirms a hospital |
+| Best-hospital selection | Lowest provider ETA among explicitly confirmed facilities |
+| Offline routing | Signed city packs, local GPS origin, freshness checks, and fail-closed road rules |
+| Offline contact fallback | Cached facility route plus user-controlled dialer and SMS composer actions |
+| Secure settings | Android Keystore-backed encryption for API keys, tokens, and facility contacts |
+| Accessibility | English/Bangla resources, optional speech input, read-aloud, large emergency actions |
 
-1. **Offline emergency guidance** using deterministic Rust safety rules and a reviewed first-aid corpus.
-2. **Online multi-hospital coordination** using LocationIQ route data and parallel Telegram alerts to registered hospitals.
-3. **Local general chat** using a Qwen3 1.7B Q4 GGUF model bundled inside the APK.
+## Safety model
 
-The emergency path does not depend on the AI model. Red-flag rules run first, and reviewed guidance remains available even when the model fails, the phone is offline, or the user skips first-launch model preparation.
-
-## Main features
-
-### Offline emergency mode
-
-- Works without internet, an API key, or location permission.
-- Detects critical phrases such as not breathing, severe bleeding, choking, stroke signs, seizures, burns, poisoning, and suspected fractures.
-- Searches an embedded first-aid corpus with deterministic retrieval.
-- Shows an emergency call action without placing a background call.
-- Uses cited and versioned first-aid protocol files.
-- Can generate additional local guidance when no reviewed template matches.
-- Rejects generated output that violates medication, dosing, grounding, or emergency-escalation rules.
-- Supports signed offline city packs and refuses invalid, incomplete, stale, blocked, or tampered route data.
-- Displays previously cached online routes as stale and unconfirmed rather than presenting them as live information.
-
-### Online emergency mode
-
-- Requests the phone's foreground location only after user action.
-- Uses LocationIQ Nearby to find real medical facilities.
-- Filters pharmacies, laboratories, veterinary facilities, duplicates, unnamed places, and invalid coordinates.
-- Shortlists up to six hospitals, clinics, or doctor facilities.
-- Uses one LocationIQ Matrix request to calculate road distance and ETA for all shortlisted hospitals.
-- Falls back to quota-paced individual Directions requests when Matrix is unavailable.
-- Never silently drops a shortlisted hospital because another route request was rate-limited.
-- Sends alerts concurrently to all registered hospital Telegram chats.
-- Accepts only explicit `YES` or `NO` replies.
-- Never treats silence, “maybe,” “ready,” or inferred availability as confirmation.
-- Selects the confirmed hospital with the shortest provider ETA.
-- Fetches detailed turn-by-turn directions only for the selected confirmed hospital.
-- Opens the selected destination in an installed navigation application.
-
-### General chat mode
-
-- Runs entirely on the phone with the bundled GGUF model.
-- Does not call LocationIQ, contact hospitals, or use hospital-routing tools.
-- Clearly tells users to switch to Emergency mode when an emergency is described.
-- Keeps a bounded recent conversation context.
-
-### Bundled local AI
-
-- Includes `Qwen3-1.7B-Q4_K_M.gguf` directly in the APK.
-- Stores the model as an uncompressed APK asset.
-- Copies it into private app storage on first launch because llama.cpp requires a regular file path.
-- Checks the exact model size, GGUF header, and SHA-256 before enabling AI features.
-- Preserves an already-installed valid model during application upgrades.
-- Offers Retry or Continue without local AI if the phone lacks storage.
-
-## How the system works
+Prohori deliberately separates deterministic decisions from generated text.
 
 ```mermaid
 flowchart TD
-    U[User opens Prohori] --> B[First-launch model integrity check]
-    B --> M{Selected mode}
-    M --> O[Offline emergency]
-    O --> R[Deterministic red-flag rules]
-    R --> C[Reviewed first-aid corpus]
-    C --> F[Constrained local fallback only when unmatched]
-    M --> N[Online emergency]
-    N --> L[Foreground location]
-    L --> P[LocationIQ Nearby: up to 6 facilities]
-    P --> X[One route Matrix: 6 ETAs and distances]
-    X --> T[Parallel alerts to registered hospitals]
-    T --> Y[Explicit YES or NO replies]
-    Y --> W[Fastest confirmed hospital]
-    W --> D[Detailed route for winner]
-    M --> G[General chat]
-    G --> Q[Local Qwen GGUF only]
+    U[User description] --> R[Deterministic red-flag rules]
+    R -->|Recognized emergency| C[Cited protocol shown verbatim]
+    R -->|No red flag| S[Strict corpus retrieval]
+    S -->|Covered| C
+    S -->|Unmatched| M[Constrained local model]
+    M --> V[Rust output verifier]
+    V -->|Accepted| G[Clearly labelled generated guidance]
+    V -->|Rejected| N[Deterministic safety-net guidance]
+    C --> H[Optional user-selected hospital handoff]
 ```
 
-### Hospital selection rule
+The following boundaries are enforced:
 
-Prohori does not let an AI invent the winning hospital. Selection is deterministic:
+- deterministic urgency cannot be reduced by the model;
+- a verified first-aid card cannot be replaced by generated prose;
+- emergency chat bypasses free-form model generation;
+- generated emergency fallback cannot contain medicine names, dosages, invented numbers, or
+  invasive procedures;
+- hospital alerts contain a broad service category, ETA, facility, and case ID—not patient
+  names, coordinates, or symptom text;
+- no reply is never treated as hospital readiness;
+- the AI does not diagnose, prescribe, or claim to behave as a real doctor;
+- calls, SMS messages, navigation, and hospital notifications require visible user actions.
 
-1. The facility must have a valid registered contact.
-2. The alert must have been delivered.
-3. The hospital must explicitly reply `YES` for the matching case.
-4. Among confirmed hospitals, the lowest provider ETA wins.
-5. Facility ID is the stable tie-breaker.
+The bundled model is the base Qwen3 model. A research QLoRA pipeline is included for
+reproducibility, but no medically fine-tuned adapter is shipped or claimed.
 
-## Download and install
+## How the three modes work
 
-### Ready-to-install APK
+### 1. Offline emergency
 
-Download the bundled-model debug APK from the latest release:
+Offline guidance works with no internet, API key, or cloud account.
 
-**[Download Prohori APK](https://github.com/Hasan3301-cyber/Prohori/releases/download/v0.7.0-dev/prohori-v0.7.0-dev-debug.apk)**
+1. The user types or speaks what is happening.
+2. Rust red-flag rules run immediately.
+3. A matched protocol is rendered with steps, “do not” warnings, escalation conditions,
+   citations, and review status.
+4. Strict retrieval can show other relevant cards without changing urgency.
+5. Only a genuinely unmatched description may reach the local model.
+6. Rust validates generated output before anything appears.
+7. The emergency-number action opens Android's dialer; Prohori does not place a hidden call.
 
-> [!IMPORTANT]
-> Install the signed debug APK above. Do **not** install
-> `app-release-unsigned.apk`; Android can display its Prohori label but will reject that
-> unsigned build as an invalid package.
+The **Hospital routing and dispatch** section can use the phone's foreground GPS/network
+location with an installed signed city pack. No map server is contacted. If location is
+unavailable, the user may explicitly select **Use RUET demo origin**; that coordinate is never
+used silently.
 
-Requirements:
+### 2. Online emergency
+
+Online mode coordinates real nearby-place discovery and hospital contact:
+
+1. The user taps **Find nearby hospitals** and grants foreground location permission.
+2. LocationIQ Nearby returns medical facilities around the phone.
+3. Prohori removes pharmacies, laboratories, veterinary facilities, invalid coordinates,
+   unnamed entries, and duplicates.
+4. Up to six facilities are shortlisted.
+5. LocationIQ Matrix compares all six road distances and ETAs in one request. If Matrix is
+   unavailable, quota-paced Directions requests are used without silently dropping a facility.
+6. The user registers a verified Telegram chat, hotline, and/or SMS destination per facility.
+7. Registered Telegram alerts are sent concurrently through an HTTPS relay or a personal
+   single-device bot.
+8. Replies are polled and parsed strictly as `YES` or `NO` for a case ID.
+9. Among hospitals that explicitly replied `YES`, the lowest provider ETA wins.
+10. Detailed turn-by-turn directions are fetched only for the selected confirmed hospital.
+
+Route duration is not labelled as live traffic unless the provider response explicitly reports
+a traffic data source. Prohori does not invent flood, blockage, road-quality, or hospital-capacity
+information.
+
+### 3. Private AI chat
+
+Chat mode runs locally with bounded recent history and streamed output. It supports cancel,
+retry, and preserves the conversation during a failed request.
+
+Before every generation, deterministic triage checks recent user context. If the conversation
+contains a recognized emergency:
+
+- the free-form model is bypassed;
+- the cited emergency card is shown verbatim;
+- Prohori suggests a broad care service, such as emergency medicine with cardiac support;
+- the UI clearly states that this is routing metadata, not a diagnosis;
+- **Open first aid** and **Find hospitals** provide explicit handoff actions.
+
+For ordinary questions the small local model gives general suggestions. It is less capable and
+slower than a cloud model, so its output should not be used for diagnosis or urgent decisions.
+
+## Hospital selection and confirmation
+
+Hospital selection is deterministic and auditable:
+
+```text
+nearby facilities
+    → route ETA for up to 6
+    → concurrent alerts to registered contacts
+    → explicit YES/NO only
+    → confirmed facilities only
+    → lowest ETA wins
+    → detailed route for the winner
+```
+
+Important rules:
+
+- an unregistered facility stays visible but is marked unregistered;
+- delivery means only that the alert was delivered;
+- `ready`, `maybe`, silence, and an unrelated reply do not confirm readiness;
+- every alert carries a case ID;
+- a failed or declined facility can be retried individually;
+- external navigation remains user-controlled;
+- hotline and SMS actions open Android's dialer/composer and leave the final action to the user.
+
+## Install and use
+
+### Requirements
 
 - Android 7.0 or newer (`minSdk 24`)
-- ARM64 Android phone
-- Approximately 1.2 GB for the APK download
-- At least 2.5–3 GB free during installation and first launch
+- ARM64 or ARMv7 phone
+- 4 GB RAM or more recommended for local AI
+- approximately 1.2 GB for the APK
+- at least 2.5–3 GB free during installation and first launch
 
-Installation:
+The latest published GitHub release is currently the earlier `v0.7.0-dev` evaluation build:
 
-1. Download the APK to the phone.
-2. Open it from Files or Downloads.
-3. Allow **Install unknown apps** for that file manager when Android asks.
-4. Install and open Prohori.
-5. Keep the application open while **Preparing local AI** is displayed.
-6. After the model is copied and verified, the three application modes appear.
+**[Download the published evaluation APK](https://github.com/Hasan3301-cyber/Prohori/releases/download/v0.7.0-dev/prohori-v0.7.0-dev-debug.apk)**
 
-ADB installation is often more reliable for a large APK:
+The source tree is `1.0.0-rc1` and contains newer functionality than that published artifact.
+Build the current source to evaluate the features described here. Do not attempt to install
+`app-release-unsigned.apk`; Android correctly rejects an unsigned release package.
+
+For a locally built evaluation APK:
 
 ```powershell
-adb install --streaming -r -t prohori-v0.7.0-dev-debug.apk
+adb install -r -d app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The downloadable APK is debug-signed for evaluation. A production deployment must use an organization-controlled release signing key.
+On first launch, Prohori copies and verifies the bundled model into private app storage. Keep the
+app open while **Preparing local AI** is displayed. A valid installed model is preserved during
+upgrades.
 
-## User guide
+### Quick user guide
 
-### 1. Offline emergency guidance
+**Offline emergency**
 
-1. Select **Offline** from the bottom navigation.
-2. Type what is happening in plain language, for example:
-   - `He is not breathing.`
-   - `My father has chest pain and is sweating.`
-   - `She burned her arm with hot water.`
-3. Read the immediate emergency card and follow the emergency-call instruction when shown.
-4. Review matching first-aid steps and the “do not” warnings.
-5. If no reviewed guide matches, Prohori may show a separate block labelled as words written by the model on this phone.
-6. Do not wait for AI output before calling emergency services when a red flag is present.
+1. Select **Offline**.
+2. Describe what is happening, for example `My father has chest pain and is sweating`.
+3. Tap **Check symptoms offline** when needed.
+4. Follow the deterministic card and call action; do not wait for AI in a clear emergency.
+5. Expand routing only when a city pack is available and transport is being considered.
 
-Offline routing is available through signed city packs. The bundled RUET-to-RMCH route is a technical demonstration, not verified navigation data.
+**Online hospital coordination**
 
-### 2. Online nearby-hospital routing
+1. Open **Settings** and add a LocationIQ key.
+2. Configure an HTTPS relay or a personal Telegram bot.
+3. Select **Online** and tap **Find nearby hospitals**.
+4. Add verified facility contacts and tap **Save contacts**.
+5. Tap **Notify all registered hospitals in parallel**.
+6. Wait for explicit replies and follow the selected confirmed route.
 
-1. Select **Online**.
-2. Open **Settings**.
-3. Add a LocationIQ API key.
-4. Configure either a relay URL and device token, or a personal Telegram bot token.
-5. Save the settings.
-6. Press **Find nearby hospitals**.
-7. Grant foreground location permission.
-8. Review the returned candidates, road distance, and ETA.
-9. Register a verified Telegram chat ID for each hospital and press **Save contact**.
-10. Press **Notify all registered hospitals in parallel**.
-11. Wait for explicit hospital replies.
-12. When one or more hospitals reply `YES`, Prohori displays the fastest confirmed option.
-13. Press **Open route** to launch navigation.
-
-If the internet later disappears, Offline mode may show the last online route, but it labels its age and states that readiness and traffic are no longer current.
-
-### 3. General chat
+**Private chat**
 
 1. Select **Chat**.
-2. Type a general question.
-3. Press **Send**.
-4. Wait for the local model response.
+2. Ask a general question and tap **Send**.
+3. For an emergency, use the deterministic handoff buttons that appear.
 
-Chat mode cannot find, alert, confirm, or select a hospital. Use Online or Offline emergency mode for emergency actions.
+## Configuration
 
-## Hospital and Telegram setup
-
-A Telegram bot cannot initiate a conversation with a hospital group that has never added it.
-
-For every participating hospital:
-
-1. Hospital staff create or choose a Telegram group.
-2. Staff add the Prohori Telegram bot to the group or start the bot directly.
-3. The operator obtains the numeric chat ID or verified `@username`.
-4. The chat ID is registered against the exact facility returned by LocationIQ.
-5. A supervised test alert is performed before emergency use.
-
-For multiple phones, use an organization-hosted relay instead of sharing one bot token between devices. Telegram permits only one reliable `getUpdates` consumer for a bot. The relay acts as that single consumer and routes replies to the matching case.
+All runtime credentials are entered by the user and encrypted locally.
 
 | Setting | Purpose |
 |---|---|
-| LocationIQ API key | Nearby discovery, Matrix ETA, and detailed Directions |
-| Relay HTTPS URL | Organization-hosted hospital alert relay |
-| Relay device token | Authenticates the phone to the relay |
-| Personal Telegram bot token | Single-device testing when no relay is available |
-| Hospital chat ID | Verified destination for one discovered facility |
+| LocationIQ API key | Nearby discovery, Matrix comparison, and detailed Directions |
+| Relay HTTPS URL | Organization-hosted hospital notification relay |
+| Relay device token | Authenticates this installation to the relay |
+| Personal Telegram bot token | Single-phone development or supervised testing |
+| Facility Telegram chat | Destination for the readiness request |
+| Facility hotline | User-controlled dialer action |
+| Facility SMS number | User-controlled readiness-message composer |
+| Emergency number override | Corrects the locally inferred emergency number |
 
-The application never sends patient names, symptom text, or coordinates in hospital readiness alerts.
+A Telegram bot cannot initiate a conversation with a group that has never added or started it.
+Enroll each participating hospital, bind the exact facility ID to its verified contact, and run a
+supervised test before any field use. Multiple phones should use one organization relay; sharing
+one bot's `getUpdates` stream across phones can route replies incorrectly.
 
-## Technology stack
+## Architecture and technology
 
 | Layer | Technology | Responsibility |
 |---|---|---|
-| Android UI | Kotlin, Jetpack Compose, Material 3 | Three modes, settings, guidance cards, routing and confirmation UI |
-| Safety core | Rust | Red flags, retrieval, output verification, signed packs, deterministic selection |
-| Android/Rust bridge | UniFFI and JNA | Typed calls between Kotlin and Rust |
-| Local inference | llama.cpp JNI | On-device GGUF loading and constrained decoding |
-| Local model | Qwen3 1.7B Q4_K_M | Bounded triage fields, unmatched fallback, and general chat |
-| Online places | LocationIQ Nearby | Real nearby medical facilities |
-| Online routing | LocationIQ Matrix and Directions | Six-way ETA comparison and winner route details |
-| Hospital messaging | Telegram Bot API or HTTPS relay | Parallel readiness alerts and explicit replies |
-| Credential storage | Android Keystore, AES-GCM | Encrypted API keys, relay credentials, bot token, and contacts |
-| Offline maps | Signed compact city packs | Hospitals, emergency numbers, road graph, conditions and shelters |
-| Build system | Gradle, Cargo, cargo-ndk, CMake | Kotlin, Rust and llama.cpp Android builds |
-
-## Project structure
+| Android UI | Kotlin, Jetpack Compose, Material 3 | Modes, guidance, settings, routing, confirmation |
+| Safety core | Rust | Red flags, retrieval, verification, city packs, route refusal, confirmation state |
+| Android/Rust bridge | UniFFI and JNA | Typed boundary to the compiled Rust library |
+| Local inference | llama.cpp through JNI/CMake | GGUF load, streaming generation, cancellation |
+| Bundled model | Qwen3 1.7B Q4_K_M | General chat and tightly constrained unmatched fallback |
+| Online places/routes | LocationIQ Nearby, Matrix, Directions | Real facilities, ETA comparison, winner directions |
+| Messaging | Telegram Bot API or HTTPS relay | Parallel alerts and case-bound explicit replies |
+| Secret storage | Android Keystore and AES-GCM | API keys, relay credentials, bot token, contacts |
+| Offline routing | Ed25519/SHA-256 signed city packs | Hospitals, roads, conditions, emergency numbers |
+| Build | Gradle, Cargo, cargo-ndk, CMake | Android, Rust, UniFFI, and llama.cpp integration |
 
 ```text
 Prohori/
-├── app/                  Android application, Compose UI and JNI bridge
-├── core/                 Deterministic Rust safety and routing core
-├── core-ffi/             UniFFI boundary exposed to Android
+├── app/                  Android application, Compose UI, JNI bridge, device tests
+├── core/                 Deterministic Rust safety, data, confirmation, and routing
+├── core-ffi/             UniFFI records and Android-facing Rust API
 ├── data/
-│   ├── firstaid/         First-aid protocol JSON
-│   ├── grammar/          Constrained-decoding grammars
-│   ├── guidance/         Unknown-emergency safety fallback
-│   └── prompts/          Model contracts
+│   ├── firstaid/         Cited first-aid protocol JSON
+│   ├── grammar/          Constrained decoding grammars
+│   ├── guidance/         Unknown-emergency deterministic safety net
+│   └── prompts/          Local model contracts
 ├── model/
-│   └── model.lock.json   Pinned model and llama.cpp provenance
-├── tools/                Reproducible model/native build tools
+│   ├── model.lock.json   Model/runtime provenance and hashes
+│   └── README.md         Optional research training pipeline and its limitations
+├── tools/                Reproducible preparation, probes, benchmarks, and validation
+├── .github/workflows/    Public CI and protected production gates
 ├── Cargo.toml
-├── build.gradle.kts
 └── settings.gradle.kts
 ```
 
-Generated models, APKs, private signing keys, build outputs, internal execution notes, and local evidence are intentionally excluded from Git history.
+Model weights, APKs, signing keys, generated datasets, build directories, internal plans, and
+local evidence are intentionally excluded from Git.
+
+## Data, privacy, and security
+
+- emergency and chat inference runs locally;
+- medical descriptions and chat history are not persisted by the app;
+- credentials and facility contacts are encrypted with an Android Keystore-backed key;
+- release builds refuse debug bot tokens;
+- relay URLs require HTTPS except explicit debug-loopback addresses;
+- hospital readiness alerts omit patient names, symptoms, and coordinates;
+- LocationIQ and relay responses are size-bounded and structurally validated;
+- signed city packs reject unknown files, duplicates, missing files, stale conditions,
+  oversized content, bad hashes, invalid signatures, and path traversal;
+- invalid contacts fail closed;
+- backup rules exclude sensitive app data;
+- production validation scans the APK for configured secret values.
 
 ## Build from source
 
@@ -280,89 +319,116 @@ Generated models, APKs, private signing keys, build outputs, internal execution 
 - CMake `3.31.6`
 - Rust `1.90` or newer
 - `cargo-ndk 4.1.2`
-- PowerShell for model preparation
-- Approximately 8 GB free for model preparation and Android build intermediates
+- PowerShell for the model preparation scripts
+- about 8 GB free for downloads and build intermediates
+
+Prepare the pinned model and native runtime:
 
 ```powershell
 cargo install cargo-ndk --version 4.1.2 --locked
 powershell -ExecutionPolicy Bypass -File tools/prepare-model.ps1
 ```
 
-The model preparation script downloads the pinned official Qwen3 Q8 GGUF, verifies it, downloads pinned llama.cpp tools, and requantizes it to Q4_K_M.
-
-Expected bundled model:
+Expected bundled Q4 artifact:
 
 ```text
 model/artifacts/Qwen3-1.7B-Q4_K_M.gguf
-size:   1107408544 bytes
+bytes:  1107408544
 sha256: 54c0f1203a724e9f33e76916beab3bdfaffef56cf7b42a93b1bc21319fc0bf97
 ```
 
-Build:
+Build an evaluation APK:
 
 ```powershell
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:ANDROID_NDK_HOME = "$env:ANDROID_HOME\ndk\27.3.13750724"
-./gradlew.bat :app:assembleDebug -PprohoriAbis=arm64-v8a --no-daemon
+./gradlew.bat :app:assembleDebug '-PprohoriAbis=arm64-v8a,armeabi-v7a'
 ```
 
 Output: `app/build/outputs/apk/debug/app-debug.apk`
 
-Release builds remain unsigned until a production signing configuration is supplied.
+### Production signing
 
-## Testing
+Release signing is explicit and fail-closed. Copy `signing.properties.example` to the ignored
+`signing.properties`, point it at the organization-controlled keystore, and build:
 
-### Rust safety core
+```powershell
+./gradlew.bat :app:assembleRelease -PprohoriProductionSigning=true `
+  '-PprohoriAbis=arm64-v8a,armeabi-v7a'
+```
 
-```bash
+Never commit the keystore or its credentials. A normal `assembleRelease` produces an unsigned
+artifact for inspection, not installation.
+
+## Testing and release validation
+
+Run the Rust safety and quality gates:
+
+```powershell
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
 ```
 
-### Android tests and lint
+Run Android unit tests, lint, builds, and instrumentation packaging:
 
 ```powershell
-./gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebugAndroidTest `
-  -PprohoriAbis=arm64-v8a --no-daemon
+./gradlew.bat :app:testDebugUnitTest :app:lintDebug `
+  :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest
 ```
 
-Coverage includes corpus integrity, red flags, retrieval, fallback filtering, signed packs, route refusal, Nearby parsing, six-destination Matrix parsing, concurrent six-hospital alert fan-out, strict replies, fastest-confirmed selection, secret storage, and bundled-model structure.
+Validate a signed evaluation artifact:
 
-Device instrumentation tests require a connected Android device or emulator.
+```powershell
+./tools/validate-release.ps1 `
+  -ApkPath app/build/outputs/apk/debug/app-debug.apk `
+  -Mode Evaluation `
+  -RepositoryRoot .
+```
 
-## Privacy and security
+The validator checks signature policy, package ID, 16 KiB ZIP alignment, both native ABIs, the
+uncompressed model's exact hash/size, and configured-secret leakage. The protected
+`production-gates` workflow can create a production-signed artifact only when repository signing
+secrets are supplied.
 
-- Emergency and chat inference runs locally.
-- Credentials are encrypted with an Android Keystore-backed AES-GCM key.
-- Secrets are not stored in the APK, source tree, or logs.
-- Release builds refuse debug bot tokens.
-- Relay URLs require HTTPS except explicit debug loopback addresses.
-- Hospital alerts exclude patient names, symptoms, and coordinates.
-- LocationIQ responses are size-bounded and structurally validated.
-- Offline city packs require an Ed25519 signature and SHA-256 for every payload.
-- Unknown, duplicate, missing, oversized, stale, or path-traversing pack content is rejected.
-- AI output cannot override deterministic emergency rules.
+Current automated coverage includes:
 
-## Known limitations
+- corpus integrity, citation/review metadata, and readability;
+- red flags, misspellings, second-language normalization, retrieval, and negative cases;
+- constrained fallback output and medication/dosage/invasive-action rejection;
+- signed city-pack import, tamper/staleness refusal, road constraints, and route selection;
+- LocationIQ parsing, six-destination comparison, and route freshness;
+- parallel six-hospital fan-out, strict replies, retry, and fastest-confirmed selection;
+- coarse emergency-service propagation without patient text;
+- encrypted storage, backup exclusions, model integrity, cancellation, and conversation history;
+- visible offline submission controls and physical-device local-model benchmarks.
 
-- The public APK is an evaluation/debug build, not a Play Store production release.
-- The APK is large because the 1.1 GB model is bundled for offline installation.
-- First launch needs enough storage for both the APK and extracted model.
-- Live traffic is claimed only when the provider explicitly reports a traffic datasource.
-- Online routing does not independently certify road quality or hospital capacity.
-- Hospitals must register Telegram endpoints before receiving alerts.
-- The bundled city route is an abstract demonstration and is not field checked.
-- Local AI speed depends on phone hardware and thermal limits.
-- The application has not completed clinician, accessibility, field-deployment, or medical-device certification.
+## Current limitations
 
-## Model and data attribution
+- The GitHub release APK is older than the current `1.0.0-rc1` source.
+- A real production APK still requires the owner's protected signing key.
+- The APK is large because it includes a 1.1 GB local model; first launch needs space for both
+  the APK and extracted model.
+- The model is a general base model, not medically fine-tuned or clinically certified.
+- All 18 bundled protocols currently have citations but no recorded clinician approval.
+- The bundled Rajshahi pack contains one demonstration hospital and is marked
+  `field_checked: false`; it is not a complete city database.
+- There is no central Prohori hospital database or automatic hospital-enrollment backend.
+- LocationIQ route duration/distance does not independently prove live traffic, flood status,
+  road quality, or ambulance access.
+- Hospital readiness works only after real facilities are enrolled and their contacts verified.
+- Hotline and SMS destinations can become stale; opening a dialer/composer is not confirmation.
+- Local AI latency depends on RAM, CPU, thermal state, and other applications on the phone.
+- Prohori has not completed clinician review, medical-device approval, accessibility audit, or
+  controlled field deployment.
 
-- Local model: [Qwen3-1.7B-GGUF](https://huggingface.co/Qwen/Qwen3-1.7B-GGUF), used under its published license.
-- Inference runtime: [llama.cpp](https://github.com/ggml-org/llama.cpp).
-- Online places and routing: [LocationIQ](https://locationiq.com/) and OpenStreetMap-derived data.
-- First-aid protocol files contain their source URLs and review metadata.
+## Attribution
+
+- [Qwen3-1.7B-GGUF](https://huggingface.co/Qwen/Qwen3-1.7B-GGUF) under its published license
+- [llama.cpp](https://github.com/ggml-org/llama.cpp)
+- [LocationIQ](https://locationiq.com/) and OpenStreetMap-derived data
+- protocol-specific sources recorded in `data/firstaid/*.json`
 
 ## Maintainer
 

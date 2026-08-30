@@ -45,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -55,9 +57,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.DateFormat
+import java.util.Date
 
 @Composable
-fun OnlineEmergencyScreen(settings: Settings) {
+fun OnlineEmergencyScreen(
+    settings: Settings,
+    requestedSpecialty: String = "general_emergency",
+    onOpenSettings: () -> Unit = {},
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val locator = remember { DeviceLocation(context.applicationContext) }
@@ -66,14 +74,15 @@ fun OnlineEmergencyScreen(settings: Settings) {
     var dispatches by remember { mutableStateOf<List<HospitalDispatch>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
-    var showSettings by remember { mutableStateOf(false) }
     var detailedRouteFor by remember { mutableStateOf<String?>(null) }
+    var phase by remember { mutableStateOf(OnlinePhase.READY) }
 
     fun discover() {
         val key = settings.locationIqApiKey
         if (key.isNullOrBlank()) {
             note = "Add a LocationIQ API key in Online settings first."
-            showSettings = true
+            phase = OnlinePhase.ERROR
+            onOpenSettings()
             return
         }
         scope.launch {
@@ -81,9 +90,11 @@ fun OnlineEmergencyScreen(settings: Settings) {
             dispatches = emptyList()
             detailedRouteFor = null
             note = "Getting this device's foreground location…"
+            phase = OnlinePhase.LOCATING
             val result =
                 runCatching {
                     val origin = locator.current() ?: error("No current device location was available")
+                    phase = OnlinePhase.DISCOVERING
                     note = "Finding hospitals and calculating all candidate ETAs in one route matrix…"
                     LocationIqClient(key).discoverRoutes(origin)
                 }
@@ -92,14 +103,23 @@ fun OnlineEmergencyScreen(settings: Settings) {
                 cache.save(it)
                 note =
                     "Found ${it.routes.size} routed candidates. All registered hospitals can now be notified in parallel."
-            }.onFailure { note = it.message ?: "Online hospital discovery failed." }
+                phase = OnlinePhase.ROUTES_READY
+            }.onFailure {
+                note = onlineFailureMessage(it)
+                phase = OnlinePhase.ERROR
+            }
             busy = false
         }
     }
 
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
-            if (grants.values.any { it }) discover() else note = "Location permission is required only for Online mode."
+            if (grants.values.any { it }) {
+                discover()
+            } else {
+                note = "Location permission was denied. Allow it in Android Settings, or use the cached route in Offline mode."
+                phase = OnlinePhase.ERROR
+            }
         }
 
     fun requestDiscovery() {
@@ -123,16 +143,22 @@ fun OnlineEmergencyScreen(settings: Settings) {
         val transport = AlertTransports.resolve(settings)
         if (transport == null) {
             note = AlertTransports.unavailableReason(settings)
-            showSettings = true
+            phase = OnlinePhase.ERROR
+            onOpenSettings()
             return
         }
         scope.launch {
             busy = true
+            phase = OnlinePhase.NOTIFYING
             note = "Sending registered hospital alerts in parallel through ${transport.label}…"
             val coordinator = HospitalCoordinator(transport)
-            val sent = runCatching { coordinator.dispatch(current, settings.hospitalContacts()) }
+            val sent =
+                runCatching {
+                    coordinator.dispatch(current, settings.hospitalContacts(), requestedSpecialty)
+                }
             if (sent.isFailure) {
                 note = sent.exceptionOrNull()?.message ?: "Hospital alerts failed."
+                phase = OnlinePhase.ERROR
                 busy = false
                 return@launch
             }
@@ -144,6 +170,7 @@ fun OnlineEmergencyScreen(settings: Settings) {
                 } else {
                     "Delivered $awaiting alerts. Waiting only for explicit YES or NO replies."
                 }
+            phase = if (awaiting > 0) OnlinePhase.WAITING else OnlinePhase.ERROR
             busy = false
             repeat(POLL_ATTEMPTS) {
                 if (dispatches.none { it.state == HospitalAlertState.AWAITING }) return@launch
@@ -165,6 +192,7 @@ fun OnlineEmergencyScreen(settings: Settings) {
                         snapshot = refreshed
                         cache.save(refreshed)
                         note = "Detailed route ready for ${detailed.hospital.name}."
+                        phase = OnlinePhase.CONFIRMED
                     }.onFailure {
                         note =
                             "Hospital confirmed, but detailed directions are temporarily unavailable. " +
@@ -179,6 +207,55 @@ fun OnlineEmergencyScreen(settings: Settings) {
         }
     }
 
+    fun retryHospital(route: OnlineHospitalRoute) {
+        val current = snapshot ?: return
+        val transport = AlertTransports.resolve(settings)
+        if (transport == null) {
+            note = AlertTransports.unavailableReason(settings)
+            onOpenSettings()
+            return
+        }
+        scope.launch {
+            busy = true
+            phase = OnlinePhase.NOTIFYING
+            note = "Retrying ${route.hospital.name} only…"
+            val coordinator = HospitalCoordinator(transport)
+            val retried =
+                runCatching {
+                    coordinator.dispatch(
+                        current.copy(routes = listOf(route)),
+                        settings.hospitalContacts(),
+                        requestedSpecialty,
+                    ).single()
+                }.getOrElse {
+                    note = it.message ?: "This hospital could not be contacted."
+                    phase = OnlinePhase.ERROR
+                    busy = false
+                    return@launch
+                }
+            dispatches = dispatches.filterNot { it.route.hospital.facilityId == route.hospital.facilityId } + retried
+            busy = false
+            if (retried.state != HospitalAlertState.AWAITING) {
+                phase = OnlinePhase.ERROR
+                note = retried.detail
+                return@launch
+            }
+            phase = OnlinePhase.WAITING
+            note = "Alert delivered again. Waiting only for an explicit YES or NO."
+            repeat(POLL_ATTEMPTS) {
+                delay(POLL_INTERVAL_MILLIS)
+                val updated = coordinator.poll(listOf(retried)).single()
+                dispatches = dispatches.map { if (it.caseId == retried.caseId) updated else it }
+                if (updated.state != HospitalAlertState.AWAITING) {
+                    phase = if (updated.state == HospitalAlertState.CONFIRMED) OnlinePhase.CONFIRMED else OnlinePhase.ROUTES_READY
+                    note = updated.detail
+                    return@launch
+                }
+            }
+            note = "No reply was received. Silence is not confirmation; call this hospital directly."
+        }
+    }
+
     val best = HospitalCoordinator.bestConfirmed(dispatches)
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
@@ -187,24 +264,29 @@ fun OnlineEmergencyScreen(settings: Settings) {
     ) {
         item {
             Text(
-                "ONLINE RESPONSE",
+                stringResource(R.string.online_section),
                 style = MaterialTheme.typography.labelMedium,
                 color = ProhoriRed,
             )
             Spacer(Modifier.height(6.dp))
-            Text("Find care that is ready", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.online_title), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             Text(
-                "Compare real road times, alert up to six hospitals together, and route only after an explicit YES.",
+                stringResource(R.string.online_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = ProhoriMuted,
             )
-            Spacer(Modifier.height(18.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                WorkflowStep("01", "Nearby", Modifier.weight(1f))
-                WorkflowStep("02", "Notify", Modifier.weight(1f))
-                WorkflowStep("03", "Confirm", Modifier.weight(1f))
+            Spacer(Modifier.height(8.dp))
+            Surface(color = ProhoriGreenSoft, shape = RoundedCornerShape(9.dp)) {
+                Text(
+                    "Hospital service requested: ${specialtyDisplayName(requestedSpecialty)}. " +
+                        "This category is not a diagnosis and contains no symptom text.",
+                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
+            Spacer(Modifier.height(18.dp))
+            OnlineTimeline(phase = phase, snapshot = snapshot, dispatches = dispatches)
             Spacer(Modifier.height(18.dp))
             Surface(
                 color = ProhoriWhite,
@@ -224,7 +306,7 @@ fun OnlineEmergencyScreen(settings: Settings) {
                     Button(
                         onClick = ::requestDiscovery,
                         enabled = !busy,
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        modifier = Modifier.fillMaxWidth().height(54.dp).testTag("online_find_hospitals"),
                         colors = ButtonDefaults.buttonColors(containerColor = ProhoriInk),
                     ) {
                         if (busy) {
@@ -235,13 +317,13 @@ fun OnlineEmergencyScreen(settings: Settings) {
                             )
                             Spacer(Modifier.size(10.dp))
                         }
-                        Text(if (busy) "Working securely…" else "Find nearby hospitals")
+                        Text(if (busy) stringResource(R.string.working_securely) else stringResource(R.string.find_nearby_hospitals))
                     }
                     OutlinedButton(
-                        onClick = { showSettings = true },
+                        onClick = onOpenSettings,
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth().height(50.dp),
-                    ) { Text("Connection & hospital settings") }
+                    ) { Text(stringResource(R.string.connection_settings)) }
                 }
             }
             note?.let {
@@ -308,21 +390,36 @@ fun OnlineEmergencyScreen(settings: Settings) {
                 Button(
                     onClick = ::notifyHospitals,
                     enabled = !busy && current.routes.isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    modifier = Modifier.fillMaxWidth().height(54.dp).testTag("online_notify_parallel"),
                     colors = ButtonDefaults.buttonColors(containerColor = ProhoriRed),
-                ) { Text("Notify all registered hospitals in parallel") }
+                ) { Text(stringResource(R.string.notify_parallel)) }
             }
             items(current.routes, key = { it.hospital.facilityId }) { route ->
                 HospitalCandidateCard(
                     route = route,
-                    initialChat = settings.hospitalContacts()[route.hospital.facilityId].orEmpty(),
+                    initialContact =
+                        settings.hospitalEndpoints()[route.hospital.facilityId] ?: HospitalContact(),
                     dispatch = dispatches.firstOrNull { it.route.hospital.facilityId == route.hospital.facilityId },
-                    onSaveChat = { value ->
+                    fetchedAtEpochMillis = current.fetchedAtEpochMillis,
+                    onSaveContact = { value ->
                         runCatching { settings.setHospitalContact(route.hospital.facilityId, value) }
-                            .onSuccess { note = "Saved a verified contact for ${route.hospital.name}." }
+                            .onSuccess { note = "Saved verified contact options for ${route.hospital.name}." }
                             .onFailure { note = it.message }
                     },
+                    onCall = { number ->
+                        if (!dial(context, number)) note = "No dialer opened. Dial $number by hand."
+                    },
+                    onSms = { number ->
+                        val body =
+                            hospitalReadinessSms(
+                                route.hospital.name,
+                                requestedSpecialty,
+                                (route.durationSeconds + 59) / 60,
+                            )
+                        if (!composeHospitalSms(context, number, body)) note = "No SMS app opened."
+                    },
                     onNavigate = { openNavigation(context, route.hospital) },
+                    onRetry = { retryHospital(route) },
                 )
             }
         }
@@ -355,23 +452,31 @@ fun OnlineEmergencyScreen(settings: Settings) {
         }
     }
 
-    if (showSettings) {
-        OnlineSettingsDialog(
-            settings = settings,
-            onDismiss = { showSettings = false },
-            onSaved = {
-                showSettings = false
-                note = "Online settings saved securely on this device."
-            },
-        )
+}
+
+private enum class OnlinePhase { READY, LOCATING, DISCOVERING, ROUTES_READY, NOTIFYING, WAITING, CONFIRMED, ERROR }
+
+@Composable
+private fun OnlineTimeline(
+    phase: OnlinePhase,
+    snapshot: OnlineRouteSnapshot?,
+    dispatches: List<HospitalDispatch>,
+) {
+    val discovered = snapshot != null
+    val contacted = dispatches.any { it.sentAtEpochMillis != null }
+    val confirmed = dispatches.any { it.state == HospitalAlertState.CONFIRMED }
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        WorkflowStep("01", if (discovered) "Nearby hospitals found · ${formatClock(snapshot!!.fetchedAtEpochMillis)}" else "Find nearby hospitals", discovered || phase == OnlinePhase.LOCATING || phase == OnlinePhase.DISCOVERING)
+        WorkflowStep("02", if (contacted) "Alerts sent to ${dispatches.count { it.sentAtEpochMillis != null }} hospitals" else "Notify up to six together", contacted || phase == OnlinePhase.NOTIFYING)
+        WorkflowStep("03", if (confirmed) "Explicit YES received" else "Wait for explicit YES or NO", confirmed || phase == OnlinePhase.WAITING)
     }
 }
 
 @Composable
-private fun WorkflowStep(number: String, label: String, modifier: Modifier = Modifier) {
+private fun WorkflowStep(number: String, label: String, active: Boolean, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        color = ProhoriWhite,
+        color = if (active) ProhoriGreenSoft else ProhoriWhite,
         shape = RoundedCornerShape(11.dp),
         border = BorderStroke(1.dp, ProhoriBorder),
     ) {
@@ -385,12 +490,24 @@ private fun WorkflowStep(number: String, label: String, modifier: Modifier = Mod
 @Composable
 private fun HospitalCandidateCard(
     route: OnlineHospitalRoute,
-    initialChat: String,
+    initialContact: HospitalContact,
     dispatch: HospitalDispatch?,
-    onSaveChat: (String?) -> Unit,
+    fetchedAtEpochMillis: Long,
+    onSaveContact: (HospitalContact?) -> Unit,
+    onCall: (String) -> Unit,
+    onSms: (String) -> Unit,
     onNavigate: () -> Unit,
+    onRetry: () -> Unit,
 ) {
-    var chat by remember(route.hospital.facilityId, initialChat) { mutableStateOf(initialChat) }
+    var chat by remember(route.hospital.facilityId, initialContact) {
+        mutableStateOf(initialContact.telegramChatId.orEmpty())
+    }
+    var hotline by remember(route.hospital.facilityId, initialContact) {
+        mutableStateOf(initialContact.hotline.orEmpty())
+    }
+    var sms by remember(route.hospital.facilityId, initialContact) {
+        mutableStateOf(initialContact.smsNumber.orEmpty())
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = ProhoriWhite),
@@ -418,6 +535,13 @@ private fun HospitalCandidateCard(
                 else "Traffic not verified",
                 style = MaterialTheme.typography.bodyMedium,
             )
+            Text(
+                "Route measured ${formatClock(fetchedAtEpochMillis)} · " +
+                    cachedRouteAgeLabel(fetchedAtEpochMillis, System.currentTimeMillis()) +
+                    if (routeIsStale(fetchedAtEpochMillis)) " · refresh recommended" else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (routeIsStale(fetchedAtEpochMillis)) ProhoriRed else ProhoriMuted,
+            )
             OutlinedTextField(
                 value = chat,
                 onValueChange = { chat = it.take(33) },
@@ -426,9 +550,50 @@ private fun HospitalCandidateCard(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+            OutlinedTextField(
+                value = hotline,
+                onValueChange = { hotline = it.take(26) },
+                label = { Text("Verified hotline") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = sms,
+                onValueChange = { sms = it.take(26) },
+                label = { Text("Verified SMS number") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { onSaveChat(chat.trim().ifBlank { null }) }) { Text("Save contact") }
+                TextButton(
+                    onClick = {
+                        onSaveContact(
+                            HospitalContact(
+                                telegramChatId = chat.trim().ifBlank { null },
+                                hotline = hotline.trim().ifBlank { null },
+                                smsNumber = sms.trim().ifBlank { null },
+                            ),
+                        )
+                    },
+                ) { Text("Save contacts") }
                 TextButton(onClick = onNavigate) { Text("Open route") }
+            }
+            if (hotline.isNotBlank() || sms.isNotBlank()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (hotline.isNotBlank()) {
+                        OutlinedButton(onClick = { onCall(hotline.trim()) }) { Text("Call") }
+                    }
+                    if (sms.isNotBlank()) {
+                        OutlinedButton(onClick = { onSms(sms.trim()) }) { Text("Prepare SMS") }
+                    }
+                }
+                Text(
+                    "Android always leaves the final call or Send action to you.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ProhoriMuted,
+                )
             }
             dispatch?.let {
                 HorizontalDivider()
@@ -437,10 +602,14 @@ private fun HospitalCandidateCard(
                     shape = RoundedCornerShape(9.dp),
                 ) {
                     Text(
-                        "${it.state.name.lowercase().replace('_', ' ')} · ${it.detail}",
+                        hospitalStatusLabel(it) + " · " + it.detail +
+                            (it.repliedAtEpochMillis ?: it.sentAtEpochMillis)?.let { time -> " · ${formatClock(time)}" }.orEmpty(),
                         modifier = Modifier.padding(9.dp),
                         style = MaterialTheme.typography.bodySmall,
                     )
+                }
+                if (it.state == HospitalAlertState.FAILED || it.state == HospitalAlertState.DECLINED) {
+                    OutlinedButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) { Text("Retry this hospital") }
                 }
             }
             if (route.steps.isNotEmpty()) {
@@ -448,6 +617,32 @@ private fun HospitalCandidateCard(
                 route.steps.take(4).forEach { Text("• ${it.instruction}") }
             }
         }
+    }
+}
+
+internal fun routeIsStale(fetchedAtEpochMillis: Long, nowMillis: Long = System.currentTimeMillis()): Boolean =
+    nowMillis - fetchedAtEpochMillis > 15 * 60_000L
+
+private fun hospitalStatusLabel(dispatch: HospitalDispatch): String =
+    when (dispatch.state) {
+        HospitalAlertState.UNREGISTERED -> "Contact not registered"
+        HospitalAlertState.SENDING -> "Sending"
+        HospitalAlertState.AWAITING -> "Delivered; awaiting reply"
+        HospitalAlertState.CONFIRMED -> "Explicit YES"
+        HospitalAlertState.DECLINED -> "Explicit NO"
+        HospitalAlertState.FAILED -> "Delivery failed"
+    }
+
+private fun formatClock(epochMillis: Long): String = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(epochMillis))
+
+private fun onlineFailureMessage(error: Throwable): String {
+    val raw = error.message.orEmpty()
+    return when {
+        raw.contains("429") -> "Location service rate limit reached. Wait briefly, then try again; Offline mode still works."
+        raw.contains("401") || raw.contains("403") -> "LocationIQ rejected the API key. Check it in Settings and try again."
+        raw.contains("location", ignoreCase = true) -> "Current location was unavailable. Turn on Location and try again, or use the cached route in Offline mode."
+        raw.contains("network", ignoreCase = true) || raw.contains("connect", ignoreCase = true) -> "No working internet connection. Use Offline mode now, then retry when signal returns."
+        else -> raw.ifBlank { "Online hospital discovery failed. Check internet, location, and the LocationIQ key, then retry." }
     }
 }
 

@@ -21,6 +21,8 @@ data class HospitalDispatch(
     val chatId: String?,
     val state: HospitalAlertState,
     val detail: String,
+    val sentAtEpochMillis: Long? = null,
+    val repliedAtEpochMillis: Long? = null,
 )
 
 class HospitalCoordinator(private val transport: HospitalAlertTransport) {
@@ -30,7 +32,11 @@ class HospitalCoordinator(private val transport: HospitalAlertTransport) {
         specialty: String = "general_emergency",
     ): List<HospitalDispatch> = coroutineScope {
         val batchTime = System.currentTimeMillis()
-        snapshot.routes.map { route ->
+        snapshot.routes
+            .distinctBy { it.hospital.facilityId }
+            .sortedWith(compareBy({ it.durationSeconds }, { it.hospital.facilityId }))
+            .take(MAX_PARALLEL_HOSPITALS)
+            .map { route ->
             async(Dispatchers.IO) {
                 val chat = contacts[route.hospital.facilityId]
                 if (!isValidTelegramChatId(chat)) {
@@ -65,6 +71,7 @@ class HospitalCoordinator(private val transport: HospitalAlertTransport) {
                             chat,
                             HospitalAlertState.AWAITING,
                             "Alert delivered. Waiting for an explicit YES or NO.",
+                            sentAtEpochMillis = System.currentTimeMillis(),
                         )
                     is SendOutcome.Refused ->
                         HospitalDispatch(
@@ -89,11 +96,13 @@ class HospitalCoordinator(private val transport: HospitalAlertTransport) {
                         dispatch.copy(
                             state = HospitalAlertState.CONFIRMED,
                             detail = "Hospital explicitly replied YES.",
+                            repliedAtEpochMillis = System.currentTimeMillis(),
                         )
                     RelayReply.NO ->
                         dispatch.copy(
                             state = HospitalAlertState.DECLINED,
                             detail = "Hospital explicitly replied NO.",
+                            repliedAtEpochMillis = System.currentTimeMillis(),
                         )
                     null -> dispatch
                 }
@@ -102,6 +111,7 @@ class HospitalCoordinator(private val transport: HospitalAlertTransport) {
     }
 
     companion object {
+        const val MAX_PARALLEL_HOSPITALS = 6
         /** Confirmation outranks everything; duration and id make the choice auditable. */
         fun bestConfirmed(dispatches: List<HospitalDispatch>): HospitalDispatch? =
             dispatches.filter { it.state == HospitalAlertState.CONFIRMED }

@@ -27,10 +27,10 @@ root ::= "{" ws schema-version "," ws reassurance "," ws steps "," ws do-not ","
 
 schema-version ::= "\"schema_version\"" ws ":" ws "\"1\""
 reassurance ::= "\"reassurance\"" ws ":" ws sentence
-steps ::= "\"steps\"" ws ":" ws "[" ws sentence ("," ws sentence){0,5} "]"
-do-not ::= "\"do_not\"" ws ":" ws "[" ws (sentence ("," ws sentence){0,2})? "]"
+steps ::= "\"steps\"" ws ":" ws "[" ws sentence ("," ws sentence){0,2} "]"
+do-not ::= "\"do_not\"" ws ":" ws "[" ws sentence? "]"
 call-now ::= "\"call_now\"" ws ":" ws "true"
 
-sentence ::= "\"" char{1,140} "\""
+sentence ::= "\"" char{1,80} "\""
 char ::= [^"\\\x7F\x00-\x1F0-9] | "\\" ["\\/bfnrt]
 ws ::= [ \t\n]{0,4}

@@ -22,7 +22,7 @@ plugins {
 val rustRoot: File = rootProject.projectDir
 
 val androidAbis: List<String> =
-    (project.findProperty("prohoriAbis") as String? ?: "arm64-v8a")
+    (project.findProperty("prohoriAbis") as String? ?: "arm64-v8a,armeabi-v7a")
         .split(",")
         .map { it.trim() }
         .filter { it.isNotEmpty() }
@@ -236,6 +236,38 @@ val relayDeviceToken = relaySetting("PROHORI_RELAY_DEVICE_TOKEN")
 // BuildConfig — see the check below.
 val debugBotToken = relaySetting("PROHORI_DEBUG_BOT_TOKEN")
 
+// Production signing is opt-in and secret-free in source control. Local owners use the
+// ignored signing.properties file; CI injects the same values as environment variables.
+// A normal `assembleRelease` remains unsigned for inspection, while
+// `-PprohoriProductionSigning=true` fails closed unless every credential is present.
+val signingProperties =
+    Properties().apply {
+        val file = rootProject.file("signing.properties")
+        if (file.exists()) file.inputStream().use { load(it) }
+    }
+
+fun signingSetting(property: String, environment: String): String =
+    (signingProperties.getProperty(property) ?: System.getenv(environment) ?: "").trim()
+
+val releaseStoreFile = signingSetting("storeFile", "PROHORI_KEYSTORE_FILE")
+val releaseStorePassword = signingSetting("storePassword", "PROHORI_KEYSTORE_PASSWORD")
+val releaseKeyAlias = signingSetting("keyAlias", "PROHORI_KEY_ALIAS")
+val releaseKeyPassword = signingSetting("keyPassword", "PROHORI_KEY_PASSWORD")
+val productionSigningRequested =
+    ((project.findProperty("prohoriProductionSigning") as String?) ?: System.getenv("PROHORI_PRODUCTION_SIGNING"))
+        ?.toBooleanStrictOrNull() == true
+val releaseSigningComplete =
+    listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { it.isNotBlank() }
+
+if (productionSigningRequested) {
+    require(releaseSigningComplete) {
+        "Production signing was requested, but storeFile, storePassword, keyAlias, and keyPassword are not all configured."
+    }
+    require(rootProject.file(releaseStoreFile).isFile) {
+        "The configured production keystore file does not exist."
+    }
+}
+
 // Quoting is not cosmetic: buildConfigField pastes its value into generated Java verbatim,
 // so an unescaped value would either fail to compile or inject code.
 fun javaString(value: String): String = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
@@ -272,8 +304,8 @@ android {
         // Prohori does not use background services, exact alarms, or broad storage, so
         // the API-36 behaviour change does not weaken an emergency path.
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.7.0-dev"
+        versionCode = 2
+        versionName = "1.0.0-rc1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += androidAbis }
         externalNativeBuild {
@@ -286,6 +318,12 @@ android {
                     "-DLLAMA_BUILD_EXAMPLES=OFF",
                     "-DLLAMA_BUILD_SERVER=OFF",
                     "-DGGML_NATIVE=OFF",
+                    // BUILD_SHARED_LIBS, GGML_BACKEND_DL, GGML_CPU_ALL_VARIANTS and
+                    // GGML_CPU_KLEIDIAI are deliberately absent: their value depends on the
+                    // ABI, and src/main/cpp/CMakeLists.txt is their single owner. Setting them
+                    // here too meant a stale .cxx cache could disagree with the CMakeLists and
+                    // still look configured — which is how a release slice shipped the
+                    // unoptimized baseline CPU backend without anything failing.
                     "-DGGML_OPENMP=OFF",
                     "-DGGML_LLAMAFILE=OFF",
                 )
@@ -294,8 +332,24 @@ android {
         }
     }
 
+    signingConfigs {
+        if (productionSigningRequested) {
+            create("production") {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                enableV1Signing = false
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = if (productionSigningRequested) signingConfigs.getByName("production") else null
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -353,7 +407,10 @@ android {
     }
     packaging {
         jniLibs {
-            useLegacyPackaging = false
+            // llama.cpp's runtime CPU dispatcher scans sibling .so files. They must be
+            // extracted to a real directory; a base.apk!/lib/... pseudo-path cannot be
+            // opened by ggml_backend_load_all_from_path().
+            useLegacyPackaging = true
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

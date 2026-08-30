@@ -310,6 +310,11 @@ pub struct LoadedCityPack {
     pub hospitals: Vec<Hospital>,
     pub graph: Graph,
     pub conditions: HashMap<u32, Condition>,
+    /// Zone id to the name a resident would use, from `zones.geojson`.
+    ///
+    /// An `Edge` carries the zone *id* (`ruet`), which is fine for routing and wrong in a
+    /// sentence a frightened person reads. Kept so a rejection can say "RUET corridor".
+    pub zone_names: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -339,6 +344,30 @@ pub struct HospitalRoute {
     pub hospital: Hospital,
     pub start_node_id: u32,
     pub route: Route,
+    pub condition_age_seconds: u64,
+    pub condition_sources: Vec<String>,
+    pub facility_age_seconds: u64,
+}
+
+/// One candidate hospital, graded, carrying the reason it was kept or rejected.
+///
+/// The nearest hospital is not the fastest, and the fastest way to it is not always passable.
+/// [`LoadedCityPack::route_to_hospital`] answers only with the survivor, which meant a family
+/// was never told that the hospital a kilometre away had been considered and ruled out. Keeping
+/// the rejects — each with the words for why — is what makes that decision inspectable.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HospitalOption {
+    pub hospital: Hospital,
+    /// True when a route survived every freshness, hazard, and vehicle check.
+    pub usable: bool,
+    /// A whole sentence, plain enough for a frightened reader.
+    ///
+    /// Authored here rather than in Kotlin for the same reason `FirstAidCard::provenance` is:
+    /// the UI displays this text and never composes it.
+    pub reason: String,
+    /// Present only when `usable`.
+    pub route: Option<Route>,
+    pub start_node_id: u32,
     pub condition_age_seconds: u64,
     pub condition_sources: Vec<String>,
     pub facility_age_seconds: u64,
@@ -397,6 +426,17 @@ impl LoadedCityPack {
             hospitals: hospitals.hospitals,
             graph,
             conditions: condition_map,
+            zone_names: zones
+                .features
+                .iter()
+                .filter(|feature| !feature.properties.name.trim().is_empty())
+                .map(|feature| {
+                    (
+                        feature.properties.id.clone(),
+                        feature.properties.name.clone(),
+                    )
+                })
+                .collect(),
         })
     }
 
@@ -404,6 +444,36 @@ impl LoadedCityPack {
         &self,
         request: HospitalRouteRequest<'_>,
     ) -> Result<HospitalRoute, RouteFailure> {
+        let chosen = self
+            .rank_hospitals(request)?
+            .into_iter()
+            .find(|option| option.usable)
+            .ok_or(RouteFailure::NoPassableRoute)?;
+        // `usable` is only ever set alongside a route, so this is the same refusal rather than
+        // a second, different one.
+        let route = chosen.route.ok_or(RouteFailure::NoPassableRoute)?;
+        Ok(HospitalRoute {
+            hospital: chosen.hospital,
+            start_node_id: chosen.start_node_id,
+            route,
+            condition_age_seconds: chosen.condition_age_seconds,
+            condition_sources: chosen.condition_sources,
+            facility_age_seconds: chosen.facility_age_seconds,
+        })
+    }
+
+    /// Grade every capable hospital and keep the ones that were ruled out.
+    ///
+    /// Ordered survivors first by ETA, then rejects nearest-first — because the point of
+    /// showing rejects at all is that the closest hospital is often the unreachable one, and
+    /// that is the fact a family would otherwise discover at the blockage.
+    ///
+    /// Ties break on hospital id so the same pack and the same clock always produce the same
+    /// list; `core` stays clock-free and RNG-free, and this ordering must not be the exception.
+    pub fn rank_hospitals(
+        &self,
+        request: HospitalRouteRequest<'_>,
+    ) -> Result<Vec<HospitalOption>, RouteFailure> {
         if !self
             .manifest
             .bbox
@@ -456,23 +526,95 @@ impl LoadedCityPack {
             patient_zone: start.zone.clone(),
             permit_flooded_origin_zone: request.permit_flooded_origin_zone,
         };
-        let mut best: Option<(&Hospital, Route)> = None;
+        let facility_age_seconds = |hospital: &Hospital| {
+            request
+                .now_epoch_seconds
+                .saturating_sub(hospital.verified_at_epoch_seconds)
+        };
+
+        let mut graded: Vec<(HospitalOption, f64)> = Vec::with_capacity(candidates.len());
         for hospital in candidates {
-            let Some(route) =
-                self.graph
+            let proximity = squared_distance(
+                request.latitude,
+                request.longitude,
+                hospital.latitude,
+                hospital.longitude,
+            );
+            let option =
+                match self
+                    .graph
                     .route(start.id, hospital.node_id, &self.conditions, &profile)
-            else {
-                continue;
-            };
-            let replace = best.as_ref().is_none_or(|(current, current_route)| {
-                (route.estimated_seconds, hospital.id.as_str())
-                    < (current_route.estimated_seconds, current.id.as_str())
-            });
-            if replace {
-                best = Some((hospital, route));
-            }
+                {
+                    Some(route) => {
+                        let (condition_age_seconds, condition_sources) =
+                            self.route_condition_provenance(&route, request.now_epoch_seconds);
+                        // The chosen way being open does not mean nothing was avoided. Grade the
+                        // corridor a traveller would have taken with no vetoes at all, and if it
+                        // was shut, say so — otherwise a longer drive looks like the normal one.
+                        let unvetoed = self.graph.explain(
+                            start.id,
+                            hospital.node_id,
+                            &self.conditions,
+                            &profile,
+                        );
+                        let detour = route
+                            .estimated_seconds
+                            .saturating_sub(unvetoed.fastest_seconds);
+                        let reason = unvetoed
+                            .with_zone_names(&self.zone_names)
+                            .detour_reason(detour)
+                            .unwrap_or_else(|| {
+                                "Every road on this way is open, and the reports are fresh."
+                                    .to_owned()
+                            });
+                        HospitalOption {
+                            hospital: hospital.clone(),
+                            usable: true,
+                            reason,
+                            route: Some(route),
+                            start_node_id: start.id,
+                            condition_age_seconds,
+                            condition_sources,
+                            facility_age_seconds: facility_age_seconds(hospital),
+                        }
+                    }
+                    None => HospitalOption {
+                        hospital: hospital.clone(),
+                        usable: false,
+                        reason: self
+                            .graph
+                            .explain(start.id, hospital.node_id, &self.conditions, &profile)
+                            .with_zone_names(&self.zone_names)
+                            .reason(),
+                        route: None,
+                        start_node_id: start.id,
+                        condition_age_seconds: 0,
+                        condition_sources: Vec::new(),
+                        facility_age_seconds: facility_age_seconds(hospital),
+                    },
+                };
+            graded.push((option, proximity));
         }
-        let (hospital, route) = best.ok_or(RouteFailure::NoPassableRoute)?;
+
+        graded.sort_by(|(left, left_proximity), (right, right_proximity)| {
+            right
+                .usable
+                .cmp(&left.usable)
+                .then_with(|| match (left.route.as_ref(), right.route.as_ref()) {
+                    (Some(l), Some(r)) => l.estimated_seconds.cmp(&r.estimated_seconds),
+                    _ => left_proximity.total_cmp(right_proximity),
+                })
+                .then_with(|| left.hospital.id.cmp(&right.hospital.id))
+        });
+        Ok(graded.into_iter().map(|(option, _)| option).collect())
+    }
+
+    /// How old the worst condition on this route is, and which sources it came from.
+    fn route_condition_provenance(
+        &self,
+        route: &Route,
+        now_epoch_seconds: u64,
+    ) -> (u64, Vec<String>) {
         let route_edge_ids: HashSet<u32> = route.edge_ids.iter().copied().collect();
         let route_conditions: Vec<&Condition> = self
             .conditions
@@ -483,27 +625,17 @@ impl LoadedCityPack {
             .collect();
         let condition_age_seconds = route_conditions
             .iter()
-            .map(|condition| {
-                request
-                    .now_epoch_seconds
-                    .saturating_sub(condition.observed_at_epoch_seconds)
-            })
+            .map(|condition| now_epoch_seconds.saturating_sub(condition.observed_at_epoch_seconds))
             .max()
             .unwrap_or(0);
         let condition_sources: BTreeSet<String> = route_conditions
             .iter()
             .map(|condition| condition.source.clone())
             .collect();
-        Ok(HospitalRoute {
-            hospital: hospital.clone(),
-            start_node_id: start.id,
-            route,
+        (
             condition_age_seconds,
-            condition_sources: condition_sources.into_iter().collect(),
-            facility_age_seconds: request
-                .now_epoch_seconds
-                .saturating_sub(hospital.verified_at_epoch_seconds),
-        })
+            condition_sources.into_iter().collect(),
+        )
     }
 }
 
@@ -779,6 +911,15 @@ mod tests {
     fn loaded_fixture_with_telegram(
         telegram_chat_id: Option<&str>,
     ) -> (Vec<u8>, HashMap<String, Vec<u8>>, [u8; 32]) {
+        loaded_fixture_tuned(telegram_chat_id, Vec::new(), &[])
+    }
+
+    /// The demo pack, optionally with extra hospitals and with named edges reported blocked.
+    fn loaded_fixture_tuned(
+        telegram_chat_id: Option<&str>,
+        extra_hospitals: Vec<Hospital>,
+        blocked_edges: &[u32],
+    ) -> (Vec<u8>, HashMap<String, Vec<u8>>, [u8; 32]) {
         let key = SigningKey::from_bytes(&[11; 32]);
         let graph = Graph {
             nodes: vec![
@@ -834,7 +975,11 @@ mod tests {
         let condition = |edge_id| EdgeCondition {
             edge_id,
             condition: Condition {
-                status: RoadStatus::Open,
+                status: if blocked_edges.contains(&edge_id) {
+                    RoadStatus::Blocked
+                } else {
+                    RoadStatus::Open
+                },
                 source: "demo_snapshot".into(),
                 observed_at_epoch_seconds: 900,
                 stale_after_seconds: 200,
@@ -869,7 +1014,10 @@ mod tests {
                         verified_at_epoch_seconds: 800,
                         verified_by: "official contact page".into(),
                         source_urls: vec!["https://contacts.rmch.gov.bd/contacts/".into()],
-                    }],
+                    }]
+                    .into_iter()
+                    .chain(extra_hospitals)
+                    .collect(),
                 })
                 .unwrap_or_default(),
             ),
@@ -948,6 +1096,92 @@ mod tests {
             files,
             key.verifying_key().to_bytes(),
         )
+    }
+
+    /// Failure 1: the closest hospital is often the unreachable one, and a family that is not
+    /// told so drives at the blockage, turns around, and loses the time it did not have.
+    #[test]
+    fn a_nearer_hospital_that_cannot_be_reached_is_reported_and_not_silently_dropped() {
+        // The clinic sits on node 2, closer to the caller than RMCH on node 3. Edge 1 is the
+        // only way to node 2, and it is reported blocked — so the near option dies and the far
+        // one survives on the long edge 3.
+        let clinic = Hospital {
+            id: "motihar-clinic".into(),
+            name: "Motihar Clinic".into(),
+            latitude: 24.3680,
+            longitude: 88.6100,
+            node_id: 2,
+            specialties: vec!["general_emergency".into(), "cardiac".into()],
+            emergency_capable: true,
+            hotline: "+880721776002".into(),
+            sms_number: None,
+            telegram_chat_id: None,
+            verified_at_epoch_seconds: 800,
+            verified_by: "official contact page".into(),
+            source_urls: vec!["https://contacts.motihar.example/".into()],
+        };
+        let (envelope, files, public_key) = loaded_fixture_tuned(None, vec![clinic], &[1]);
+        let pack = LoadedCityPack::load(&envelope, &files, &public_key).expect("valid pack");
+        let request = HospitalRouteRequest {
+            latitude: 24.3630,
+            longitude: 88.6280,
+            specialty: "cardiac",
+            now_epoch_seconds: 1_000,
+            vehicle_width_millimetres: 2_400,
+            vehicle_height_millimetres: 3_000,
+            permit_flooded_origin_zone: false,
+        };
+
+        let ranked = pack.rank_hospitals(request).expect("ranking");
+        assert_eq!(ranked.len(), 2, "both hospitals must be accounted for");
+
+        let survivor = ranked.first().expect("a survivor");
+        assert_eq!(survivor.hospital.id, "rmch");
+        assert!(survivor.usable);
+        assert_eq!(
+            survivor.route.as_ref().map(|route| route.edge_ids.clone()),
+            Some(vec![3]),
+            "the long way is the only open way"
+        );
+
+        let rejected = ranked.get(1).expect("a reject");
+        assert_eq!(rejected.hospital.id, "motihar-clinic");
+        assert!(!rejected.usable);
+        assert!(rejected.route.is_none());
+        // The zone id is `ruet`; the sentence must use the name from zones.geojson.
+        assert_eq!(
+            rejected.reason, "The road through RUET corridor is blocked.",
+            "a rejected hospital has to say why in words a resident would use"
+        );
+
+        // The chooser still agrees with the ranking, so adding the explanation changed no
+        // decision — only what can be seen about it.
+        let route = pack.route_to_hospital(request).expect("route");
+        assert_eq!(route.hospital.id, "rmch");
+        assert_eq!(route.route.edge_ids, vec![3]);
+    }
+
+    #[test]
+    fn a_reachable_hospital_says_the_way_is_open_rather_than_saying_nothing() {
+        let (envelope, files, public_key) = loaded_fixture();
+        let pack = LoadedCityPack::load(&envelope, &files, &public_key).expect("valid pack");
+        let ranked = pack
+            .rank_hospitals(HospitalRouteRequest {
+                latitude: 24.3630,
+                longitude: 88.6280,
+                specialty: "cardiac",
+                now_epoch_seconds: 1_000,
+                vehicle_width_millimetres: 2_400,
+                vehicle_height_millimetres: 3_000,
+                permit_flooded_origin_zone: false,
+            })
+            .expect("ranking");
+        let chosen = ranked.first().expect("a survivor");
+        assert!(chosen.usable);
+        assert_eq!(
+            chosen.reason,
+            "Every road on this way is open, and the reports are fresh."
+        );
     }
 
     #[test]

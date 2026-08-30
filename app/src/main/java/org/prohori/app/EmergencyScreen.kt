@@ -1,5 +1,7 @@
 package org.prohori.app
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -17,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -32,19 +35,25 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import org.prohori.core.CardStep
 import org.prohori.core.CityPackInstall
 import org.prohori.core.CountryChoice
@@ -57,25 +66,20 @@ import org.prohori.core.HospitalConfirmationView
 import org.prohori.core.HospitalContactChannel
 import org.prohori.core.HospitalReply
 import org.prohori.core.HospitalReplySource
-import org.prohori.core.ModelAssessment
 import org.prohori.core.ModelWrittenGuidance
 import org.prohori.core.NumberProvenance
 import org.prohori.core.OfflineRouteRequest
 import org.prohori.core.OfflineRouteResult
 import org.prohori.core.Prohori
 import org.prohori.core.RecognisedEmergency
+import org.prohori.core.RouteCandidate
 import org.prohori.core.SearchResult
 import org.prohori.core.StepAction
 import org.prohori.core.Triage
 import org.prohori.core.Urgency
-import org.prohori.core.coreVersion
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -89,16 +93,6 @@ import kotlinx.coroutines.withContext
  */
 private const val HOSPITAL_POLL_INTERVAL_MILLIS = 5_000L
 private const val HOSPITAL_POLL_ATTEMPTS = 60
-
-/**
- * How long typing has to stop before the model is woken for an unmatched query.
- *
- * A decode is two to six seconds of CPU in someone's hand, so this is not a debounce for
- * smoothness — it is the difference between one generation and one per keystroke. Six hundred
- * milliseconds is longer than the gap between two letters and shorter than the pause someone
- * makes when they have finished a sentence and are waiting for the screen to answer.
- */
-private const val FALLBACK_DEBOUNCE_MILLIS = 600L
 
 /**
  * A model-written answer, and the exact message it was written for.
@@ -115,6 +109,50 @@ private data class FallbackShown(
     val guidance: ModelWrittenGuidance?,
     val note: String?,
 )
+
+/**
+ * What the offline check is doing, in the order it happens.
+ *
+ * Named rather than spun. This path is dominated by prefill — tens of seconds on a mid-range
+ * phone — and one indeterminate spinner held that long is indistinguishable from a hang, which
+ * on this screen means someone stops trusting the app and stops waiting for it. Each value
+ * marks work that is genuinely happening, so the label is a report and not a decoration.
+ */
+internal enum class OfflineStage {
+    /** Nothing submitted, or the description changed and the last answer no longer applies. */
+    IDLE,
+
+    /** Red-flag rules and reviewed-guide retrieval decide whether the model may answer at all. */
+    CHECKING,
+
+    /** The model is loading and reading the description. Most of the wait lives here. */
+    PREPARING,
+
+    /** Characters are arriving from the model. */
+    WRITING,
+
+    /** Rust accepted the answer and it is on screen. */
+    READY,
+}
+
+internal fun OfflineStage.label(): String =
+    when (this) {
+        OfflineStage.IDLE -> "Check symptoms offline"
+        OfflineStage.CHECKING -> "Checking warning signs"
+        OfflineStage.PREPARING -> "AI is preparing guidance"
+        OfflineStage.WRITING -> "AI is writing guidance"
+        OfflineStage.READY -> "Guidance ready"
+    }
+
+private val OfflineStage.labelRes: Int
+    get() =
+        when (this) {
+            OfflineStage.IDLE -> R.string.check_symptoms_offline
+            OfflineStage.CHECKING -> R.string.stage_checking
+            OfflineStage.PREPARING -> R.string.stage_preparing
+            OfflineStage.WRITING -> R.string.stage_writing
+            OfflineStage.READY -> R.string.stage_ready
+        }
 
 /**
  * The one screen this build has.
@@ -148,12 +186,10 @@ private data class FallbackShown(
  * living in the UI layer is exactly what the rest of this codebase is built to prevent.
  */
 @Composable
-// `debounce` is the one preview API in this file. Accepted deliberately: the alternative is
-// hand-rolling a timer inside the collector, and a hand-rolled debounce on the path that
-// decides whether to wake a model is more likely to be wrong than this annotation is to break.
-@OptIn(FlowPreview::class)
 fun EmergencyScreen(core: Prohori, settings: Settings) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
     val modelStore = remember { ModelStore(context.applicationContext) }
     val cityPackStore = remember { CityPackStore(context.applicationContext) }
@@ -165,18 +201,19 @@ fun EmergencyScreen(core: Prohori, settings: Settings) {
     var message by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
     var dialFailed by remember { mutableStateOf<String?>(null) }
-    var modelInstalled by remember { mutableStateOf(modelStore.installed()) }
-    var modelBusy by remember { mutableStateOf(false) }
-    var modelStatus by remember { mutableStateOf<String?>(null) }
-    var modelAssessment by remember { mutableStateOf<ModelAssessment?>(null) }
+    // Routing and dispatch start folded; see the section itself for why.
+    var routingExpanded by remember { mutableStateOf(false) }
+    val modelInstalled = remember { modelStore.installed() }
     var offlineRoute by remember { mutableStateOf<OfflineRouteResult?>(null) }
-    var cityPackInstall by remember { mutableStateOf(initialCityPack.getOrNull()) }
-    var cityPackError by remember { mutableStateOf(initialCityPack.exceptionOrNull()?.message) }
-    var cityPackBusy by remember { mutableStateOf(false) }
+    val offlineLocator = remember { DeviceLocation(context.applicationContext) }
+    var offlineLocationBusy by remember { mutableStateOf(false) }
+    var offlineLocationNote by remember { mutableStateOf<String?>(null) }
+    val cityPackInstall = remember { initialCityPack.getOrNull() }
+    val cityPackError = remember { initialCityPack.exceptionOrNull()?.message }
     var hospitalConfirmation by remember { mutableStateOf(core.hospitalConfirmation()) }
     var hospitalConfirmationError by remember { mutableStateOf<String?>(null) }
     // Resolved once: which transport, if any, this build can send an online alert with.
-    val alertTransport = remember { AlertTransports.resolve() }
+    val alertTransport = remember { AlertTransports.resolve(settings) }
     var relayBusy by remember { mutableStateOf(false) }
     var relayNote by remember { mutableStateOf<String?>(null) }
     // The unmatched path. The card is cited and deterministic and costs nothing to hold; the
@@ -184,6 +221,11 @@ fun EmergencyScreen(core: Prohori, settings: Settings) {
     val safetyNet = remember { core.safetyNetCard() }
     var fallbackShown by remember { mutableStateOf<FallbackShown?>(null) }
     var fallbackBusy by remember { mutableStateOf(false) }
+    var fallbackAttempt by remember { mutableIntStateOf(0) }
+    // The model reports progress from the thread running the decode, so the stage travels
+    // through a flow rather than straight into snapshot state.
+    val offlineStageFlow = remember { MutableStateFlow(OfflineStage.IDLE) }
+    val offlineStage by offlineStageFlow.collectAsState()
 
     val acceptConfirmationResult: (HospitalConfirmationResult) -> Unit = { result ->
         result.confirmation?.let { hospitalConfirmation = it }
@@ -225,56 +267,6 @@ fun EmergencyScreen(core: Prohori, settings: Settings) {
                 "This hospital is still not confirmed."
     }
 
-    val modelPicker =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) {
-                scope.launch {
-                    modelBusy = true
-                    modelAssessment = null
-                    modelStatus = "Checking and copying the GGUF model…"
-                    val result =
-                        runCatching {
-                            withContext(Dispatchers.IO) { modelStore.import(uri) }
-                        }
-                    result.onSuccess { imported ->
-                        modelInstalled = true
-                        modelStatus =
-                            "Model ready · ${imported.bytes / 1_000_000} MB · " +
-                                "SHA-256 ${imported.sha256.take(12)}…"
-                    }.onFailure { error ->
-                        modelInstalled = modelStore.installed()
-                        modelStatus = "Model not installed: ${error.message ?: "unknown error"}"
-                    }
-                    modelBusy = false
-                }
-            }
-        }
-
-    val cityPackPicker =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) {
-                scope.launch {
-                    cityPackBusy = true
-                    offlineRoute = null
-                    val result =
-                        runCatching {
-                            withContext(Dispatchers.IO) { cityPackStore.import(uri, core) }
-                        }
-                    result.onSuccess { install ->
-                        if (install.accepted) {
-                            cityPackInstall = install
-                            cityPackError = null
-                        } else {
-                            cityPackError = install.error
-                        }
-                    }.onFailure { error ->
-                        cityPackError = error.message ?: "The selected city pack could not be read"
-                    }
-                    cityPackBusy = false
-                }
-            }
-        }
-
     // `remember(key)` is the whole state machine: change the inputs, the core recomputes.
     val numbers: EmergencyNumbers =
         remember(country, manualNumber, cityPackInstall) {
@@ -293,42 +285,115 @@ fun EmergencyScreen(core: Prohori, settings: Settings) {
     // on this phone, and that is not something to discover in silence.
     val loadErrors = remember { core.corpusLoadErrors() }
 
-    // When nothing in the corpus covers what was typed, the model writes something itself.
-    // No button: someone holding a phone over a casualty is not going to find a second one.
-    //
-    // Three operators make an automatic decode affordable, and each is load-bearing:
-    //
-    //  - `debounce` waits for typing to stop, so a half-written word never reaches the model;
-    //  - `distinctUntilChanged` over the trimmed text means re-reading what you wrote, or
-    //    adding a trailing space, costs nothing;
-    //  - `conflate` is the trailing single-flight. A native decode holds `engine_mutex` and
-    //    cannot be interrupted, so `collectLatest` would cancel this coroutine and leave the
-    //    decode running underneath it — the phone would heat up while the screen showed
-    //    nothing. `conflate` keeps only the newest text while a generation is in flight and
-    //    runs it once, after the current one returns.
-    //
-    // `fallbackPermitted` is asked here only to avoid waking the model. Rust asks again after
-    // generation, and that second answer is the one that decides — so a red-flag rule that
-    // starts matching mid-decode throws the answer away rather than racing it onto the screen.
-    //
-    // Keyed on `modelInstalled` so importing a model re-offers the text already in the field.
-    LaunchedEffect(modelInstalled) {
-        if (!modelInstalled) return@LaunchedEffect
-        snapshotFlow { message }
-            .debounce(FALLBACK_DEBOUNCE_MILLIS)
-            .map { it.trim() }
-            .distinctUntilChanged()
-            .conflate()
-            .collect { typed ->
-                if (!core.fallbackPermitted(typed)) return@collect
-                fallbackBusy = true
+    val calculateOfflineRoute: (GeoPoint, String) -> Unit = { origin, label ->
+        offlineRoute =
+            core.offlineRoute(
+                OfflineRouteRequest(
+                    latitude = origin.latitude,
+                    longitude = origin.longitude,
+                    specialty = "general_emergency",
+                    nowEpochSeconds = (System.currentTimeMillis() / 1_000).toULong(),
+                    vehicleWidthMillimetres = 2_400u,
+                    vehicleHeightMillimetres = 3_000u,
+                    permitFloodedOriginZone = false,
+                ),
+            )
+        offlineLocationNote = label
+    }
+
+    fun locateAndCalculateOfflineRoute() {
+        scope.launch {
+            offlineLocationBusy = true
+            offlineLocationNote = "Getting a GPS/network location; no internet request is made…"
+            val point = runCatching { offlineLocator.current() }.getOrNull()
+            if (point == null) {
+                offlineLocationNote =
+                    "No device location was available. Turn on Location and retry, or explicitly use the RUET demo origin."
+            } else {
+                calculateOfflineRoute(point, "Route starts from this phone's captured location.")
+            }
+            offlineLocationBusy = false
+        }
+    }
+
+    val offlineLocationPermission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+            if (grants.values.any { it }) {
+                locateAndCalculateOfflineRoute()
+            } else {
+                offlineLocationNote =
+                    "Location permission was denied. Retry after allowing it, or explicitly use the RUET demo origin."
+            }
+        }
+
+    val requestOfflineRoute: () -> Unit = {
+        val granted =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            locateAndCalculateOfflineRoute()
+        } else {
+            offlineLocationPermission.launch(
+                arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION),
+            )
+        }
+    }
+
+    // Red-flag rules and reviewed-card search still update on every keystroke, so urgent
+    // guidance never waits for a button. Only the slow, unmatched model path waits for an
+    // explicit submit. The old hidden debounce made the phone work with no visible action and
+    // left users unsure whether their description had been accepted.
+    val submitOfflineCheck: () -> Unit = {
+        val typed = message.trim()
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+        when {
+            typed.isEmpty() || fallbackBusy -> Unit
+            triage.hits.isNotEmpty() || (searchResults.isNotEmpty() && !fallbackPermitted) -> {
+                // Reviewed guidance is already visible; acknowledge the tap instead of
+                // making a working submit button look inert.
+                offlineStageFlow.value = OfflineStage.READY
+            }
+            !fallbackPermitted -> {
+                fallbackShown =
+                    FallbackShown(
+                        forMessage = typed,
+                        guidance = null,
+                        note = core.fallbackSuppression(typed) ?: "Add a few more words about what is happening.",
+                    )
+                offlineStageFlow.value = OfflineStage.IDLE
+            }
+            !modelInstalled -> {
+                fallbackShown =
+                    FallbackShown(
+                        forMessage = typed,
+                        guidance = null,
+                        note = "The private model is not ready. Open Settings to install it.",
+                    )
+                offlineStageFlow.value = OfflineStage.IDLE
+            }
+            else -> {
+            val attemptId = ++fallbackAttempt
+            fallbackBusy = true
+            fallbackShown = null
+            offlineStageFlow.value = OfflineStage.CHECKING
+            scope.launch {
                 val result =
                     runCatching {
                         withContext(Dispatchers.Default) {
-                            OnDeviceEngine.writeFallback(core, modelStore.modelFile, typed)
+                            // The permission check and the contract are behind us; from here on
+                            // the phone is loading the model and reading the description.
+                            offlineStageFlow.value = OfflineStage.PREPARING
+                            OnDeviceEngine.writeFallback(core, modelStore.modelFile, typed) {
+                                if (attemptId == fallbackAttempt) {
+                                    offlineStageFlow.value = OfflineStage.WRITING
+                                }
+                            }
                         }
                     }
-                fallbackShown =
+                val completed =
                     result.fold(
                         onSuccess = { run ->
                             FallbackShown(
@@ -345,8 +410,15 @@ fun EmergencyScreen(core: Prohori, settings: Settings) {
                             )
                         },
                     )
-                fallbackBusy = false
+                if (attemptId == fallbackAttempt) {
+                    fallbackShown = completed
+                    fallbackBusy = false
+                    offlineStageFlow.value =
+                        if (completed.guidance != null) OfflineStage.READY else OfflineStage.IDLE
+                }
             }
+        }
+        }
     }
 
     Scaffold(
@@ -391,44 +463,36 @@ fun EmergencyScreen(core: Prohori, settings: Settings) {
                 )
             }
 
-            Text("OFFLINE TRIAGE", style = MaterialTheme.typography.labelMedium, color = ProhoriRed)
+            Text(stringResource(R.string.offline_section), style = MaterialTheme.typography.labelMedium, color = ProhoriRed)
             Spacer(Modifier.height(6.dp))
-            Text("Tell us what you see", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.offline_title), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Use plain words. Emergency rules and reviewed guides work with no internet or signal.",
+                text = stringResource(R.string.offline_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = ProhoriMuted,
             )
             Spacer(Modifier.height(16.dp))
 
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = ProhoriWhite,
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, ProhoriBorder),
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("WHAT IS HAPPENING?", style = MaterialTheme.typography.labelMedium, color = ProhoriMuted)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = message,
-                        onValueChange = { message = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodyLarge,
-                        placeholder = { Text("For example: he is not breathing") },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
-                        minLines = 3,
-                        shape = RoundedCornerShape(14.dp),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Critical warning signs are checked before local AI is allowed to answer.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ProhoriMuted,
-                    )
-                }
-            }
+            SymptomInputCard(
+                message = message,
+                busy = fallbackBusy,
+                enabled = true,
+                stage = offlineStage,
+                onMessageChange = {
+                    message = it
+                    fallbackShown = null
+                    offlineStageFlow.value = OfflineStage.IDLE
+                },
+                onSubmit = submitOfflineCheck,
+                onCancel = {
+                    fallbackAttempt += 1
+                    OnDeviceEngine.cancel()
+                    fallbackBusy = false
+                    fallbackShown = null
+                    offlineStageFlow.value = OfflineStage.IDLE
+                },
+            )
 
             Spacer(Modifier.height(16.dp))
 
@@ -446,190 +510,186 @@ fun EmergencyScreen(core: Prohori, settings: Settings) {
                         // a copy that drifts.
                         permitted = fallbackPermitted,
                         busy = fallbackBusy,
+                        stage = offlineStage,
                         // The staleness guard: an answer written for older text is not shown.
                         shown = fallbackShown?.takeIf { it.forMessage == message.trim() },
+                        onRetry = submitOfflineCheck,
                     )
                 else -> Waiting()
             }
 
             Spacer(Modifier.height(16.dp))
-            OnDeviceModelPanel(
-                installed = modelInstalled,
-                busy = modelBusy,
-                status = modelStatus,
-                assessment = modelAssessment,
-                canAssess = message.isNotBlank(),
-                onImport = { modelPicker.launch(arrayOf("application/octet-stream", "*/*")) },
-                onAssess = {
-                    scope.launch {
-                        modelBusy = true
-                        modelStatus = "Qwen is extracting bounded triage fields on this phone…"
-                        modelAssessment = null
-                        val result =
-                            runCatching {
-                                withContext(Dispatchers.Default) {
-                                    OnDeviceEngine.assessWithMetrics(core, modelStore.modelFile, message)
-                                }
-                            }
-                        result.onSuccess { run ->
-                            val assessment = run.assessment
-                            modelAssessment = assessment
-                            modelStatus =
-                                if (assessment.accepted) {
-                                    "Passed Rust verification · first token ${run.metrics.timeToFirstTokenMillis} ms · " +
-                                        "${"%.1f".format(run.metrics.tokensPerSecond)} tokens/s"
-                                } else {
-                                    "Model output was rejected; deterministic guidance remains active."
-                                }
-                        }.onFailure { error ->
-                            modelStatus = "On-device model unavailable: ${error.message ?: "unknown error"}"
-                        }
-                        modelBusy = false
-                    }
-                },
-            )
-
-            Spacer(Modifier.height(16.dp))
-            OfflineRoutePanel(
-                install = cityPackInstall,
-                loadError = cityPackError,
-                busy = cityPackBusy,
-                route = offlineRoute,
-                onImport = {
-                    cityPackPicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
-                },
-                onRoute = {
-                    offlineRoute =
-                        core.offlineRoute(
-                            OfflineRouteRequest(
-                                latitude = 24.3630,
-                                longitude = 88.6280,
-                                specialty =
-                                    modelAssessment?.specialty?.name?.lowercase()
-                                        ?: "general_emergency",
-                                nowEpochSeconds = (System.currentTimeMillis() / 1_000).toULong(),
-                                vehicleWidthMillimetres = 2_400u,
-                                vehicleHeightMillimetres = 3_000u,
-                                permitFloodedOriginZone = false,
-                            ),
-                        )
-                },
-            )
-
-            offlineRoute?.takeIf { it.accepted }?.let { route ->
-                Spacer(Modifier.height(16.dp))
-                HospitalConfirmationPanel(
-                    route = route,
-                    confirmation = hospitalConfirmation,
-                    error = hospitalConfirmationError,
-                    transportLabel = alertTransport?.label,
-                    transportUnavailable =
-                        if (alertTransport == null) AlertTransports.unavailableReason() else null,
-                    relayBusy = relayBusy,
-                    relayNote = relayNote,
-                    onStart = { channel ->
-                        val hospitalId = route.hospitalId
-                        val etaSeconds = route.estimatedSeconds
-                        if (hospitalId == null || etaSeconds == null) {
-                            hospitalConfirmationError = "The verified route has no hospital or ETA."
-                        } else {
-                            val etaMinutes = ((etaSeconds + 59uL) / 60uL).coerceAtLeast(1uL)
-                            val result =
-                                core.startHospitalConfirmation(
-                                    HospitalConfirmationRequest(
-                                        hospitalId = hospitalId,
-                                        specialty =
-                                            modelAssessment?.specialty?.name?.lowercase()
-                                                ?: "general_emergency",
-                                        etaMinutes = etaMinutes.coerceAtMost(UInt.MAX_VALUE.toULong()).toUInt(),
-                                        channel = channel,
-                                        createdAtEpochMillis = System.currentTimeMillis().toULong(),
-                                    ),
-                                )
-                            acceptConfirmationResult(result)
-                        }
-                    },
-                    onSendOnline = { active ->
-                        val body = active.onlineBody
-                        val transport = alertTransport
-                        if (body == null || transport == null) {
-                            hospitalConfirmationError =
-                                "This build cannot send an online alert. Use SMS or the hotline."
-                        } else {
-                            relayBusy = true
-                            relayNote = null
-                            hospitalConfirmationError = null
-                            scope.launch {
-                                val outcome =
-                                    transport.send(
-                                        HospitalAlert(
-                                            caseId = active.caseId,
-                                            hospitalId = active.hospitalId,
-                                            telegramChatId = active.destination,
-                                            specialty = active.specialty,
-                                            etaMinutes = active.etaMinutes,
-                                            body = body,
-                                        ),
-                                    )
-                                relayBusy = false
-                                when (outcome) {
-                                    // The app sent this itself, so there is no "I sent it"
-                                    // attestation to ask for — unlike the SMS path, where the
-                                    // app genuinely cannot see whether Send was tapped.
-                                    is SendOutcome.Sent ->
-                                        acceptConfirmationResult(
-                                            core.markHospitalContacted(
-                                                (System.currentTimeMillis() / 1_000).toULong(),
-                                            ),
-                                        )
-                                    is SendOutcome.Refused -> {
-                                        hospitalConfirmationError =
-                                            "Nothing was sent: ${outcome.reason}"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    onOpenSms = { destination, body ->
-                        hospitalConfirmationError =
-                            if (composeHospitalSms(context, destination, body)) {
-                                null
+            // Routing and dispatch, folded away by default.
+            //
+            // The first screen has one job: say what is happening, read the guidance, call. Pack
+            // signatures, road-snapshot ages, edge ids and dispatch scripts are all real and all
+            // needed — by someone who has already read the guidance and decided to move a
+            // patient — and every line of them sitting between the guidance and the call button
+            // is a line to scroll past before finding either.
+            //
+            // It opens itself and cannot be closed once a confirmation exists, because a
+            // dispatch waiting on a hospital's answer is the one thing here that must never be
+            // folded out of sight.
+            val dispatchInProgress = hospitalConfirmation != null
+            val routingOpen = routingExpanded || dispatchInProgress
+            if (dispatchInProgress) {
+                Text(
+                    "HOSPITAL DISPATCH IN PROGRESS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = ProhoriRed,
+                )
+            } else {
+                TextButton(
+                    onClick = { routingExpanded = !routingExpanded },
+                    modifier = Modifier.fillMaxWidth().testTag("routing_section_toggle"),
+                ) {
+                    Text(
+                        text =
+                            if (routingOpen) {
+                                "Hide hospital routing and dispatch"
                             } else {
-                                "No SMS app opened. Copy the message or use the voice channel."
-                            }
-                    },
-                    onOpenVoice = { destination ->
-                        hospitalConfirmationError =
-                            if (dial(context, destination)) null else "No dialer opened. Dial $destination by hand."
-                    },
-                    onCopy = { label, text ->
-                        hospitalConfirmationError =
-                            if (copyText(context, label, text)) null else "Could not copy the script."
-                    },
-                    onContacted = {
-                        acceptConfirmationResult(
-                            core.markHospitalContacted(
-                                (System.currentTimeMillis() / 1_000).toULong(),
-                            ),
-                        )
-                    },
-                    onReply = { reply ->
-                        acceptConfirmationResult(
-                            core.recordHospitalReply(
-                                reply,
-                                (System.currentTimeMillis() / 1_000).toULong(),
-                                "device operator",
-                            ),
-                        )
-                    },
-                    onExpire = {
-                        acceptConfirmationResult(
-                            core.expireHospitalConfirmation(
-                                (System.currentTimeMillis() / 1_000).toULong(),
-                            ),
+                                "Hospital routing and dispatch"
+                            },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            if (routingOpen) {
+                Spacer(Modifier.height(8.dp))
+                OfflineRoutePanel(
+                    install = cityPackInstall,
+                    loadError = cityPackError,
+                    route = offlineRoute,
+                    locationBusy = offlineLocationBusy,
+                    locationNote = offlineLocationNote,
+                    onRoute = requestOfflineRoute,
+                    onDemoRoute = {
+                        calculateOfflineRoute(
+                            GeoPoint(24.3630, 88.6280),
+                            "DEMO origin: RUET gate coordinates, not this phone's location.",
                         )
                     },
                 )
+
+                offlineRoute?.takeIf { it.accepted }?.let { route ->
+                    Spacer(Modifier.height(16.dp))
+                    HospitalConfirmationPanel(
+                        route = route,
+                        confirmation = hospitalConfirmation,
+                        error = hospitalConfirmationError,
+                        transportLabel = alertTransport?.label,
+                        transportUnavailable =
+                            if (alertTransport == null) AlertTransports.unavailableReason() else null,
+                        relayBusy = relayBusy,
+                        relayNote = relayNote,
+                        onStart = { channel ->
+                            val hospitalId = route.hospitalId
+                            val etaSeconds = route.estimatedSeconds
+                            if (hospitalId == null || etaSeconds == null) {
+                                hospitalConfirmationError = "The verified route has no hospital or ETA."
+                            } else {
+                                val etaMinutes = ((etaSeconds + 59uL) / 60uL).coerceAtLeast(1uL)
+                                val result =
+                                    core.startHospitalConfirmation(
+                                        HospitalConfirmationRequest(
+                                            hospitalId = hospitalId,
+                                            specialty = "general_emergency",
+                                            etaMinutes =
+                                                etaMinutes.coerceAtMost(UInt.MAX_VALUE.toULong()).toUInt(),
+                                            channel = channel,
+                                            createdAtEpochMillis = System.currentTimeMillis().toULong(),
+                                        ),
+                                    )
+                                acceptConfirmationResult(result)
+                            }
+                        },
+                        onSendOnline = { active ->
+                            val body = active.onlineBody
+                            val transport = alertTransport
+                            if (body == null || transport == null) {
+                                hospitalConfirmationError =
+                                    "This build cannot send an online alert. Use SMS or the hotline."
+                            } else {
+                                relayBusy = true
+                                relayNote = null
+                                hospitalConfirmationError = null
+                                scope.launch {
+                                    val outcome =
+                                        transport.send(
+                                            HospitalAlert(
+                                                caseId = active.caseId,
+                                                hospitalId = active.hospitalId,
+                                                telegramChatId = active.destination,
+                                                specialty = active.specialty,
+                                                etaMinutes = active.etaMinutes,
+                                                body = body,
+                                            ),
+                                        )
+                                    relayBusy = false
+                                    when (outcome) {
+                                        // The app sent this itself, so there is no "I sent it"
+                                        // attestation to ask for — unlike the SMS path, where the
+                                        // app genuinely cannot see whether Send was tapped.
+                                        is SendOutcome.Sent ->
+                                            acceptConfirmationResult(
+                                                core.markHospitalContacted(
+                                                    (System.currentTimeMillis() / 1_000).toULong(),
+                                                ),
+                                            )
+                                        is SendOutcome.Refused -> {
+                                            hospitalConfirmationError =
+                                                "Nothing was sent: ${outcome.reason}"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        onOpenSms = { destination, body ->
+                            hospitalConfirmationError =
+                                if (composeHospitalSms(context, destination, body)) {
+                                    null
+                                } else {
+                                    "No SMS app opened. Copy the message or use the voice channel."
+                                }
+                        },
+                        onOpenVoice = { destination ->
+                            hospitalConfirmationError =
+                                if (dial(context, destination)) {
+                                    null
+                                } else {
+                                    "No dialer opened. Dial $destination by hand."
+                                }
+                        },
+                        onCopy = { label, text ->
+                            hospitalConfirmationError =
+                                if (copyText(context, label, text)) null else "Could not copy the script."
+                        },
+                        onContacted = {
+                            acceptConfirmationResult(
+                                core.markHospitalContacted(
+                                    (System.currentTimeMillis() / 1_000).toULong(),
+                                ),
+                            )
+                        },
+                        onReply = { reply ->
+                            acceptConfirmationResult(
+                                core.recordHospitalReply(
+                                    reply,
+                                    (System.currentTimeMillis() / 1_000).toULong(),
+                                    "device operator",
+                                ),
+                            )
+                        },
+                        onExpire = {
+                            acceptConfirmationResult(
+                                core.expireHospitalConfirmation(
+                                    (System.currentTimeMillis() / 1_000).toULong(),
+                                ),
+                            )
+                        },
+                    )
+                }
             }
 
             if (triage.hits.isNotEmpty()) {
@@ -645,7 +705,7 @@ fun EmergencyScreen(core: Prohori, settings: Settings) {
             HorizontalDivider()
             AllCards(core)
             HorizontalDivider()
-            About(numbers)
+            About()
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -672,10 +732,11 @@ fun EmergencyScreen(core: Prohori, settings: Settings) {
 private fun OfflineRoutePanel(
     install: CityPackInstall?,
     loadError: String?,
-    busy: Boolean,
     route: OfflineRouteResult?,
-    onImport: () -> Unit,
+    locationBusy: Boolean,
+    locationNote: String?,
     onRoute: () -> Unit,
+    onDemoRoute: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -683,9 +744,9 @@ private fun OfflineRoutePanel(
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Column(Modifier.padding(14.dp)) {
-            Text("Signed offline route demo", style = MaterialTheme.typography.titleMedium)
+            Text("Signed offline city route", style = MaterialTheme.typography.titleMedium)
             Text(
-                "RUET gate → Rajshahi Medical College Hospital. No internet or map server is used.",
+                "Uses this phone's foreground location and the installed city pack. No internet or map server is used.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Spacer(Modifier.height(8.dp))
@@ -709,10 +770,20 @@ private fun OfflineRoutePanel(
                         )
                     }
                     Spacer(Modifier.height(6.dp))
-                    Button(onClick = onRoute, enabled = !busy) { Text("Calculate offline demo route") }
-                    TextButton(onClick = onImport, enabled = !busy) {
-                        Text(if (busy) "Checking pack…" else "Import signed pack update")
+                    Button(onClick = onRoute, enabled = !locationBusy) {
+                        Text(if (locationBusy) "Getting location…" else "Route from this phone")
                     }
+                    OutlinedButton(onClick = onDemoRoute, enabled = !locationBusy) {
+                        Text("Use RUET demo origin")
+                    }
+                    locationNote?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = ProhoriMuted)
+                    }
+                    Text(
+                        "The demo origin is never selected automatically. Route-data updates are managed in Settings.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ProhoriMuted,
+                    )
                 }
             }
             route?.let { result ->
@@ -741,7 +812,74 @@ private fun OfflineRoutePanel(
                         Text(it, style = MaterialTheme.typography.bodySmall)
                     }
                 }
+                // Deliberately outside the accepted/refused branch. A refusal is the moment the
+                // reasons matter most: "no route" alone sends a family driving at the blockage.
+                if (result.considered.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = ProhoriBorder)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Every hospital the router looked at",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        "Nearest is not the same as reachable. Each one below says why.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ProhoriMuted,
+                    )
+                    result.considered.forEach { candidate ->
+                        Spacer(Modifier.height(6.dp))
+                        RouteCandidateRow(candidate)
+                    }
+                }
             }
+        }
+    }
+}
+
+/**
+ * One hospital and the router's verdict on it.
+ *
+ * The sentence in [RouteCandidate.reason] is authored in Rust, for the same reason
+ * `FirstAidCard.provenance` is: wording a frightened person reads belongs in one reviewable
+ * place, not assembled from fragments here.
+ */
+@Composable
+private fun RouteCandidateRow(candidate: RouteCandidate) {
+    val accent = if (candidate.usable) ProhoriGreen else ProhoriRed
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = ProhoriWhite,
+        border = BorderStroke(1.dp, ProhoriBorder),
+    ) {
+        Column(Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    when {
+                        candidate.selected -> "SELECTED"
+                        candidate.usable -> "USABLE"
+                        else -> "REJECTED"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = accent,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    candidate.hospitalName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (candidate.selected) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
+            candidate.estimatedSeconds?.let { seconds ->
+                Text(
+                    "about ${seconds / 60uL} min by the open roads",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ProhoriMuted,
+                )
+            }
+            Text(candidate.reason, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -984,75 +1122,6 @@ private fun HospitalConfirmationPanel(
     }
 }
 
-/**
- * P2 model controls. The output is deliberately secondary to deterministic triage above.
- * A rejected or unavailable model never removes a card or changes the dial path.
- */
-@Composable
-private fun OnDeviceModelPanel(
-    installed: Boolean,
-    busy: Boolean,
-    status: String?,
-    assessment: ModelAssessment?,
-    canAssess: Boolean,
-    onImport: () -> Unit,
-    onAssess: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-    ) {
-        Column(Modifier.padding(14.dp)) {
-            Text("Optional on-device Qwen", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "The model only extracts fields. Rust rules decide urgency and which cited card is shown.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Spacer(Modifier.height(8.dp))
-            if (installed) {
-                Button(onClick = onAssess, enabled = canAssess && !busy) {
-                    Text(if (busy) "Working…" else "Analyze on this phone")
-                }
-                Spacer(Modifier.height(4.dp))
-                TextButton(onClick = onImport, enabled = !busy) { Text("Replace GGUF") }
-            } else {
-                OutlinedButton(onClick = onImport, enabled = !busy) {
-                    Text(if (busy) "Importing…" else "Import Qwen3 1.7B GGUF")
-                }
-                Text(
-                    "Weights stay in private app storage and are never uploaded.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            status?.let {
-                Spacer(Modifier.height(6.dp))
-                Text(it, style = MaterialTheme.typography.bodyMedium)
-            }
-            assessment?.let { result ->
-                Spacer(Modifier.height(8.dp))
-                if (!result.accepted) {
-                    Notice(
-                        label = "Model answer refused",
-                        body = result.error ?: "It did not match the required structure.",
-                        emphasis = true,
-                    )
-                } else {
-                    Text(
-                        "Recognised symptoms: " +
-                            result.symptoms.ifEmpty { listOf("none stated") }.joinToString(", "),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    result.card?.let {
-                        Spacer(Modifier.height(8.dp))
-                        ProtocolCard(it)
-                    }
-                }
-            }
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------
 // The dial bar
 // ---------------------------------------------------------------------------
@@ -1248,6 +1317,8 @@ private fun Unmatched(
     permitted: Boolean,
     busy: Boolean,
     shown: FallbackShown?,
+    stage: OfflineStage,
+    onRetry: () -> Unit,
 ) {
     Text(
         text = "We do not have a guide for this",
@@ -1290,14 +1361,14 @@ private fun Unmatched(
         busy ->
             Text(
                 text =
-                    "The model on this phone is writing something for this. Nothing above " +
-                        "is waiting on it.",
+                    "${stringResource(stage.labelRes)}. Nothing above is waiting on it — the guidance in this " +
+                        "card and the call button below already work.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         // Named, not hidden. A refusal is the design working, and a trace that says which
         // check refused is what makes it possible to fix the prompt rather than guess at it.
-        shown?.note != null ->
+        shown?.note != null -> {
             Notice(
                 label = "Nothing more from the model",
                 body =
@@ -1305,11 +1376,20 @@ private fun Unmatched(
                         "The guidance above does not depend on it.",
                 emphasis = false,
             )
+            // A time limit, a cancel, or a refused sentence are all worth one more attempt,
+            // and the description is still in the field, so retrying costs a tap rather than
+            // retyping a description under pressure.
+            if (permitted && modelInstalled) {
+                TextButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.try_again))
+                }
+            }
+        }
         permitted && !modelInstalled ->
             Text(
                 text =
                     "The model on this phone could write more for a case like this. None is " +
-                        "installed yet — there is a button for that below.",
+                        "installed yet. Open Settings to install or replace the private model.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1400,6 +1480,17 @@ private fun ModelWrittenBlock(guidance: ModelWrittenGuidance) {
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
+            Spacer(Modifier.height(12.dp))
+            ReadAloudControls(
+                text =
+                    buildString {
+                        append(guidance.disclaimer).append(' ')
+                        append(guidance.reassurance).append(' ')
+                        guidance.steps.forEach { append(it).append(' ') }
+                        guidance.doNot.forEach { append("Do not. ").append(it).append(' ') }
+                        if (guidance.callNow) append("Keep trying to reach help.")
+                    },
+            )
         }
     }
 }
@@ -1422,6 +1513,97 @@ private fun Waiting() {
                 style = MaterialTheme.typography.bodyMedium,
                 color = ProhoriMuted,
             )
+        }
+    }
+}
+
+/** The primary Offline Mode input and its explicit submission action. */
+@Composable
+internal fun SymptomInputCard(
+    message: String,
+    busy: Boolean,
+    enabled: Boolean,
+    onMessageChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onCancel: () -> Unit = {},
+    stage: OfflineStage = OfflineStage.IDLE,
+) {
+    var elapsedSeconds by remember { mutableIntStateOf(0) }
+    LaunchedEffect(busy) {
+        elapsedSeconds = 0
+        while (busy) {
+            delay(1_000)
+            elapsedSeconds += 1
+        }
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = ProhoriWhite,
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, ProhoriBorder),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(stringResource(R.string.what_is_happening), style = MaterialTheme.typography.labelMedium, color = ProhoriMuted)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = message,
+                onValueChange = onMessageChange,
+                modifier = Modifier.fillMaxWidth().testTag("offline_symptom_input"),
+                textStyle = MaterialTheme.typography.bodyLarge,
+                placeholder = { Text(stringResource(R.string.symptom_example)) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+                enabled = enabled && !busy,
+                minLines = 3,
+                shape = RoundedCornerShape(14.dp),
+            )
+            Spacer(Modifier.height(8.dp))
+            VoiceInputButton(
+                enabled = enabled && !busy,
+                prompt = "Describe what is happening",
+                onText = onMessageChange,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.symptom_safety_check),
+                style = MaterialTheme.typography.bodySmall,
+                color = ProhoriMuted,
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = onSubmit,
+                enabled = message.isNotBlank() && enabled && !busy,
+                modifier = Modifier.fillMaxWidth().height(52.dp).testTag("offline_submit"),
+            ) {
+                // The stage is named on the button itself rather than beside it, because the
+                // button is where the person is already looking after tapping it.
+                Text(
+                    if (busy) {
+                        stringResource(R.string.offline_progress_seconds, stringResource(stage.labelRes), elapsedSeconds)
+                    } else {
+                        stringResource(R.string.check_symptoms_offline)
+                    },
+                )
+            }
+            if (busy) {
+                TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.cancel_local_ai))
+                }
+            } else if (message.isNotBlank()) {
+                if (stage == OfflineStage.READY) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(R.string.guidance_ready_below),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ProhoriGreen,
+                        modifier = Modifier.testTag("offline_stage_ready"),
+                    )
+                }
+                TextButton(onClick = { onMessageChange("") }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.clear_description))
+                }
+            }
         }
     }
 }
@@ -1598,6 +1780,8 @@ private fun ProtocolCard(card: FirstAidCard) {
         // compete for attention with the steps, and sharing is what you do after the
         // emergency, or for someone who is somewhere else.
         Spacer(Modifier.height(12.dp))
+        ReadAloudControls(text = card.plainText)
+        Spacer(Modifier.height(8.dp))
         OutlinedButton(
             onClick = { shareCardText(context, card.title, card.plainText) },
             modifier = Modifier.fillMaxWidth(),
@@ -1696,21 +1880,22 @@ private fun AllCards(core: Prohori) {
     }
 }
 
+/**
+ * The one sentence that has to survive to the bottom of this screen.
+ *
+ * The build version and country used to be here too. Both were moved to Settings: the dial
+ * bar above already shows the actual ambulance number, which is the only part of "country BD"
+ * anyone can act on, and a core version string is a developer's proof, read by nobody who is
+ * frightened. What stays is the disclaimer, because it is the one line that changes what a
+ * reader does with everything above it.
+ */
 @Composable
-private fun About(numbers: EmergencyNumbers) {
+private fun About() {
     Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
         Text(
             text =
                 "This is first aid, not a diagnosis. It cannot examine anyone. When in " +
                     "doubt, call.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            // The version is the cheapest proof that the `.so` in this APK is the one that
-            // was built and tested. If it reads wrong, nothing above it can be trusted.
-            text = "Core ${coreVersion()} · offline · country ${numbers.country ?: "unknown"}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )

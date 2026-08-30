@@ -11,7 +11,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.prohori.core.Urgency
-import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class P2DeviceBenchmarkTest {
@@ -19,8 +18,12 @@ class P2DeviceBenchmarkTest {
     fun constrainedInferenceProducesDeviceEvidence() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
-        val model = File(context.getExternalFilesDir(null), "models/qwen3-1.7b.gguf")
-        assertTrue("Push the Q4 model with tools/benchmark-p2-device.ps1", model.isFile)
+        // Exercise the same app-private model that production inference uses. Older versions
+        // of this benchmark expected a second adb-pushed copy in external storage, which made
+        // a correctly bundled and prepared installation fail the gate for the wrong reason.
+        val store = ModelStore(context)
+        val model = store.modelFile
+        assertTrue("The bundled production model must be prepared before benchmarking", store.installed())
 
         val cases =
             listOf(

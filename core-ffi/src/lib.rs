@@ -39,7 +39,7 @@
 //! uniffi is MPL-2.0. It does not reach these Apache-2.0 sources, but the generated
 //! Kotlin embeds uniffi's runtime templates, so MPL-2.0 belongs in the app's notices.
 
-use prohori_core::city_pack::{HospitalRouteRequest, LoadedCityPack};
+use prohori_core::city_pack::{HospitalRouteRequest, LoadedCityPack, RouteFailure};
 use prohori_core::confirmation::{
     Channel as CoreConfirmationChannel, Confirmation as CoreConfirmation,
     ConfirmationState as CoreConfirmationState, Reply as CoreHospitalReply,
@@ -564,6 +564,23 @@ pub struct OfflineRouteRequest {
     pub permit_flooded_origin_zone: bool,
 }
 
+/// One hospital the router considered, and what it decided about it.
+///
+/// Carried even when the route succeeded, because the value of this list is the hospital that
+/// was *rejected*: the nearest one is often the unreachable one, and without this the family
+/// discovers that at the blockage instead of on the screen. `reason` is composed in `core` and
+/// only displayed here.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct RouteCandidate {
+    pub hospital_name: String,
+    /// True for the one hospital this result routed to.
+    pub selected: bool,
+    pub usable: bool,
+    pub reason: String,
+    /// Present only when a route survived every check.
+    pub estimated_seconds: Option<u64>,
+}
+
 /// A route after signature, digest, schema, freshness, hazard, and vehicle checks.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct OfflineRouteResult {
@@ -584,6 +601,9 @@ pub struct OfflineRouteResult {
     pub condition_sources: Vec<String>,
     pub facility_age_seconds: Option<u64>,
     pub attribution: Option<String>,
+    /// Every capable hospital that was graded, survivors first. Empty when the pack was
+    /// refused outright, since then nothing was graded at all.
+    pub considered: Vec<RouteCandidate>,
 }
 
 fn offline_route_error(message: &str) -> OfflineRouteResult {
@@ -603,6 +623,7 @@ fn offline_route_error(message: &str) -> OfflineRouteResult {
         condition_sources: Vec::new(),
         facility_age_seconds: None,
         attribution: None,
+        considered: Vec::new(),
     }
 }
 
@@ -1138,7 +1159,7 @@ impl Prohori {
         let Some(pack) = installed.as_ref() else {
             return offline_route_error("no verified city pack is installed");
         };
-        match pack.route_to_hospital(HospitalRouteRequest {
+        match pack.rank_hospitals(HospitalRouteRequest {
             latitude: request.latitude,
             longitude: request.longitude,
             specialty: &request.specialty,
@@ -1147,23 +1168,66 @@ impl Prohori {
             vehicle_height_millimetres: request.vehicle_height_millimetres,
             permit_flooded_origin_zone: request.permit_flooded_origin_zone,
         }) {
-            Ok(route) => OfflineRouteResult {
-                accepted: true,
-                error: None,
-                pack_id: Some(pack.manifest.pack_id.clone()),
-                field_checked: pack.manifest.field_checked,
-                hospital_id: Some(route.hospital.id),
-                hospital_name: Some(route.hospital.name),
-                hospital_hotline: Some(route.hospital.hotline),
-                hospital_sms: route.hospital.sms_number,
-                hospital_telegram: route.hospital.telegram_chat_id,
-                edge_ids: route.route.edge_ids,
-                estimated_seconds: Some(route.route.estimated_seconds),
-                condition_age_seconds: Some(route.condition_age_seconds),
-                condition_sources: route.condition_sources,
-                facility_age_seconds: Some(route.facility_age_seconds),
-                attribution: Some(pack.manifest.attribution.clone()),
-            },
+            Ok(options) => {
+                // `rank_hospitals` puts survivors first, so the first usable entry is the same
+                // winner `route_to_hospital` would have picked.
+                let chosen = options.iter().position(|option| option.usable);
+                let considered: Vec<RouteCandidate> = options
+                    .iter()
+                    .enumerate()
+                    .map(|(index, option)| RouteCandidate {
+                        hospital_name: option.hospital.name.clone(),
+                        selected: chosen == Some(index),
+                        usable: option.usable,
+                        reason: option.reason.clone(),
+                        estimated_seconds: option
+                            .route
+                            .as_ref()
+                            .map(|route| route.estimated_seconds),
+                    })
+                    .collect();
+                let Some((option, path)) = chosen
+                    .and_then(|index| options.into_iter().nth(index))
+                    .and_then(|mut option| option.route.take().map(|path| (option, path)))
+                else {
+                    return OfflineRouteResult {
+                        accepted: false,
+                        error: Some(RouteFailure::NoPassableRoute.to_string()),
+                        pack_id: Some(pack.manifest.pack_id.clone()),
+                        field_checked: pack.manifest.field_checked,
+                        hospital_id: None,
+                        hospital_name: None,
+                        hospital_hotline: None,
+                        hospital_sms: None,
+                        hospital_telegram: None,
+                        edge_ids: Vec::new(),
+                        estimated_seconds: None,
+                        condition_age_seconds: None,
+                        condition_sources: Vec::new(),
+                        facility_age_seconds: None,
+                        attribution: Some(pack.manifest.attribution.clone()),
+                        considered,
+                    };
+                };
+                OfflineRouteResult {
+                    accepted: true,
+                    error: None,
+                    pack_id: Some(pack.manifest.pack_id.clone()),
+                    field_checked: pack.manifest.field_checked,
+                    hospital_id: Some(option.hospital.id),
+                    hospital_name: Some(option.hospital.name),
+                    hospital_hotline: Some(option.hospital.hotline),
+                    hospital_sms: option.hospital.sms_number,
+                    hospital_telegram: option.hospital.telegram_chat_id,
+                    edge_ids: path.edge_ids,
+                    estimated_seconds: Some(path.estimated_seconds),
+                    condition_age_seconds: Some(option.condition_age_seconds),
+                    condition_sources: option.condition_sources,
+                    facility_age_seconds: Some(option.facility_age_seconds),
+                    attribution: Some(pack.manifest.attribution.clone()),
+                    considered,
+                }
+            }
             Err(error) => OfflineRouteResult {
                 accepted: false,
                 error: Some(error.to_string()),
@@ -1180,6 +1244,7 @@ impl Prohori {
                 condition_sources: Vec::new(),
                 facility_age_seconds: None,
                 attribution: Some(pack.manifest.attribution.clone()),
+                considered: Vec::new(),
             },
         }
     }

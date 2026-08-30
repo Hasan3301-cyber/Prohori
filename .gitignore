@@ -84,6 +84,7 @@ Thumbs.db
 # --- Private project-management and local evidence --------------------------
 PLAN.md
 plan/
+model/P2.md
 .preview/
 docs/
 **/*evidence*.json

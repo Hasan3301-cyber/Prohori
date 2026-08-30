@@ -17,6 +17,15 @@ enum class AppMode {
     CHAT,
 }
 
+data class HospitalContact(
+    val telegramChatId: String? = null,
+    val hotline: String? = null,
+    val smsNumber: String? = null,
+) {
+    val isEmpty: Boolean
+        get() = telegramChatId == null && hotline == null && smsNumber == null
+}
+
 /**
  * The loaded Rust core, held for the life of the process.
  *
@@ -78,6 +87,10 @@ class Settings(context: Context) {
                 .getOrDefault(AppMode.OFFLINE)
         set(value) = prefs.edit().putString(KEY_MODE, value.name).apply()
 
+    var onboardingSeen: Boolean
+        get() = prefs.getBoolean(KEY_ONBOARDING_SEEN, false)
+        set(value) = prefs.edit().putBoolean(KEY_ONBOARDING_SEEN, value).apply()
+
     var country: String?
         get() = prefs.getString(KEY_COUNTRY, null)
         set(value) = prefs.edit().putString(KEY_COUNTRY, value).apply()
@@ -104,34 +117,80 @@ class Settings(context: Context) {
         get() = secure.get(SECRET_TELEGRAM_TOKEN)
         set(value) = secure.put(SECRET_TELEGRAM_TOKEN, value?.trim())
 
-    fun hospitalContacts(): Map<String, String> {
+    /** Telegram projection retained for the parallel alert coordinator. */
+    fun hospitalContacts(): Map<String, String> =
+        hospitalEndpoints().mapNotNull { (key, value) ->
+            value.telegramChatId?.let { key to it }
+        }.toMap()
+
+    /**
+     * Encrypted facility endpoints. Old releases stored each JSON value as a chat-id string;
+     * reading both shapes makes the migration automatic and lossless.
+     */
+    fun hospitalEndpoints(): Map<String, HospitalContact> {
         val raw = secure.get(SECRET_HOSPITAL_CONTACTS) ?: return emptyMap()
         return runCatching {
             val json = JSONObject(raw)
             buildMap {
                 json.keys().forEach { key ->
-                    val value = json.optString(key).trim()
-                    if (isValidTelegramChatId(value)) put(key, value)
+                    val stored = json.opt(key)
+                    val contact =
+                        when (stored) {
+                            is String -> HospitalContact(telegramChatId = stored.validTelegramOrNull())
+                            is JSONObject ->
+                                HospitalContact(
+                                    telegramChatId = stored.optString("telegram").validTelegramOrNull(),
+                                    hotline = stored.optString("hotline").validPhoneOrNull(),
+                                    smsNumber = stored.optString("sms").validPhoneOrNull(),
+                                )
+                            else -> HospitalContact()
+                        }
+                    if (!contact.isEmpty) put(key, contact)
                 }
             }
         }.getOrDefault(emptyMap())
     }
 
     fun setHospitalContact(facilityKey: String, chatId: String?) {
+        val existing = hospitalEndpoints()[facilityKey.trim()] ?: HospitalContact()
+        setHospitalContact(facilityKey, existing.copy(telegramChatId = chatId?.trim()?.takeIf { it.isNotEmpty() }))
+    }
+
+    fun setHospitalContact(facilityKey: String, contact: HospitalContact?) {
         val key = facilityKey.trim()
         require(key.isNotEmpty()) { "facility key is required" }
-        val contacts = hospitalContacts().toMutableMap()
-        val cleaned = chatId?.trim().orEmpty()
-        if (cleaned.isEmpty()) {
+        val contacts = hospitalEndpoints().toMutableMap()
+        val cleaned =
+            HospitalContact(
+                telegramChatId = contact?.telegramChatId?.trim()?.takeIf { it.isNotEmpty() },
+                hotline = contact?.hotline?.trim()?.takeIf { it.isNotEmpty() },
+                smsNumber = contact?.smsNumber?.trim()?.takeIf { it.isNotEmpty() },
+            )
+        require(cleaned.telegramChatId == null || isValidTelegramChatId(cleaned.telegramChatId)) {
+            "Telegram chat id must be a numeric id or an @username"
+        }
+        require(cleaned.hotline == null || isValidHospitalPhone(cleaned.hotline)) {
+            "Hotline must be a valid phone number"
+        }
+        require(cleaned.smsNumber == null || isValidHospitalPhone(cleaned.smsNumber)) {
+            "SMS destination must be a valid phone number"
+        }
+        if (cleaned.isEmpty) {
             contacts.remove(key)
         } else {
-            require(isValidTelegramChatId(cleaned)) {
-                "Telegram chat id must be a numeric id or an @username"
-            }
             contacts[key] = cleaned
         }
         val json = JSONObject()
-        contacts.toSortedMap().forEach { (name, value) -> json.put(name, value) }
+        contacts.toSortedMap().forEach { (name, value) ->
+            json.put(
+                name,
+                JSONObject().apply {
+                    value.telegramChatId?.let { put("telegram", it) }
+                    value.hotline?.let { put("hotline", it) }
+                    value.smsNumber?.let { put("sms", it) }
+                },
+            )
+        }
         secure.put(SECRET_HOSPITAL_CONTACTS, json.toString().takeIf { contacts.isNotEmpty() })
     }
 
@@ -141,6 +200,7 @@ class Settings(context: Context) {
 
     private companion object {
         const val KEY_MODE = "app_mode"
+        const val KEY_ONBOARDING_SEEN = "onboarding_seen_v1"
         const val KEY_COUNTRY = "country_iso"
         const val KEY_AMBULANCE = "ambulance_override"
         const val SECRET_LOCATIONIQ = "locationiq_api_key"
@@ -152,9 +212,29 @@ class Settings(context: Context) {
 }
 
 private val TELEGRAM_CHAT_ID = Regex("^(?:-?[0-9]{5,20}|@[A-Za-z][A-Za-z0-9_]{4,31})$")
+private val HOSPITAL_PHONE = Regex("^\\+?[0-9][0-9 ()-]{4,24}$")
 
 internal fun isValidTelegramChatId(value: String?): Boolean =
     !value.isNullOrBlank() && TELEGRAM_CHAT_ID.matches(value.trim())
+
+internal fun isValidHospitalPhone(value: String?): Boolean =
+    !value.isNullOrBlank() && HOSPITAL_PHONE.matches(value.trim()) && value.count(Char::isDigit) in 5..20
+
+private fun String?.validTelegramOrNull(): String? =
+    this?.trim()?.takeIf(::isValidTelegramChatId)
+
+private fun String?.validPhoneOrNull(): String? =
+    this?.trim()?.takeIf(::isValidHospitalPhone)
+
+internal fun hospitalReadinessSms(
+    hospitalName: String,
+    specialty: String,
+    etaMinutes: Long,
+): String =
+    "Prohori emergency readiness request for $hospitalName. " +
+        "Service needed: ${specialty.replace('_', ' ')}. Estimated arrival: about $etaMinutes minutes. " +
+        "Please reply YES if the facility can receive the patient now, or NO if unable. " +
+        "No patient name, symptoms, or coordinates are included."
 
 /**
  * Open the dialer with the number filled in.

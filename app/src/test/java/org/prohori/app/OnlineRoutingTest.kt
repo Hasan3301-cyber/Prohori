@@ -116,6 +116,25 @@ class OnlineRoutingTest {
         assertFalse(isValidTelegramChatId("hospital name"))
         assertTrue(isAcceptableRelayBaseUrl("https://relay.example.org"))
         assertFalse(isAcceptableRelayBaseUrl("http://relay.example.org"))
+        assertTrue(isValidHospitalPhone("+880 1712-345678"))
+        assertTrue(isValidHospitalPhone("99999"))
+        assertFalse(isValidHospitalPhone("call hospital now"))
+        assertFalse(isValidHospitalPhone("12"))
+    }
+
+    @Test
+    fun emergency_protocol_maps_to_coarse_service_without_diagnosing() {
+        assertEquals("cardiac_emergency", emergencyCareTarget("chest.pain").specialty)
+        assertEquals("trauma_emergency", emergencyCareTarget("head.injury").specialty)
+        assertEquals("general_emergency", emergencyCareTarget("unknown.protocol").specialty)
+    }
+
+    @Test
+    fun readiness_sms_contains_only_coarse_operational_data() {
+        val body = hospitalReadinessSms("General Hospital", "cardiac_emergency", 8)
+        assertTrue(body.contains("cardiac emergency"))
+        assertTrue(body.contains("about 8 minutes"))
+        assertTrue(body.contains("No patient name, symptoms, or coordinates"))
     }
 
     @Test
@@ -154,6 +173,35 @@ class OnlineRoutingTest {
     }
 
     @Test
+    fun coordinator_propagates_condition_derived_service_to_every_alert() = runBlocking {
+        val specialties = mutableListOf<String>()
+        val transport =
+            object : HospitalAlertTransport {
+                override val label = "test"
+                override suspend fun send(alert: HospitalAlert): SendOutcome {
+                    synchronized(specialties) { specialties += alert.specialty }
+                    return SendOutcome.Sent
+                }
+
+                override suspend fun poll(caseId: String): RelayReply? = null
+            }
+        val snapshot =
+            OnlineRouteSnapshot(
+                GeoPoint(24.36, 88.62),
+                1,
+                listOf(hospital("H1", "One Hospital", 300), hospital("H2", "Two Hospital", 400)),
+            )
+
+        HospitalCoordinator(transport).dispatch(
+            snapshot,
+            mapOf("H1" to "@HospitalOne", "H2" to "@HospitalTwo"),
+            "trauma_emergency",
+        )
+
+        assertEquals(listOf("trauma_emergency", "trauma_emergency"), specialties.sorted())
+    }
+
+    @Test
     fun coordinator_fans_out_to_six_registered_hospitals_concurrently() = runBlocking {
         val active = AtomicInteger(0)
         val peak = AtomicInteger(0)
@@ -184,6 +232,34 @@ class OnlineRoutingTest {
         assertEquals(6, sent.size)
         assertEquals(6, result.count { it.state == HospitalAlertState.AWAITING })
         assertTrue("hospital sends did not overlap", peak.get() > 1)
+    }
+
+    @Test
+    fun coordinator_never_fans_out_beyond_six_or_duplicates_a_facility() = runBlocking {
+        val sent = mutableListOf<String>()
+        val transport =
+            object : HospitalAlertTransport {
+                override val label = "test"
+                override suspend fun send(alert: HospitalAlert): SendOutcome {
+                    synchronized(sent) { sent += alert.hospitalId }
+                    return SendOutcome.Sent
+                }
+                override suspend fun poll(caseId: String): RelayReply? = null
+            }
+        val routes = (1..8).map { hospital("H$it", "Hospital $it", 200L + it) } + hospital("H1", "Duplicate", 100)
+        val contacts = (1..8).associate { "H$it" to "@Hospital$it" }
+
+        val result = HospitalCoordinator(transport).dispatch(OnlineRouteSnapshot(GeoPoint(24.36, 88.62), 1, routes), contacts)
+
+        assertEquals(6, sent.distinct().size)
+        assertEquals(6, result.size)
+        assertEquals(sent.distinct().size, sent.size)
+    }
+
+    @Test
+    fun route_freshness_turns_stale_after_fifteen_minutes() {
+        assertFalse(routeIsStale(1_000, 901_000))
+        assertTrue(routeIsStale(1_000, 901_001))
     }
 
     @Test

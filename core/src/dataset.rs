@@ -57,7 +57,7 @@
 //!
 //! # Severity labels, and the part a clinician still owns
 //!
-//! Ten protocols take their severity from `redflag::RULES`, where a rule already names the
+//! Nine protocols take their severity from `redflag::RULES`, where a rule already names the
 //! card — that is a decision the rule table made and this module reads. The other nine
 //! have no rule, so [`PENDING_CLINICAL_SEVERITY`] declares them, uniformly `Urgent`, and
 //! says out loud that no clinician has reviewed it.

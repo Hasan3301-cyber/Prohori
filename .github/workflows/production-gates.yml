@@ -1,0 +1,94 @@
+name: production-gates
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-gates-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bundled-android-release:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Install Android components
+        shell: pwsh
+        run: |
+          sdkmanager 'platforms;android-36' 'build-tools;36.1.0' 'ndk;27.3.13750724' 'cmake;3.31.6'
+
+      - name: Install Rust Android tooling
+        shell: pwsh
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          rustup target add aarch64-linux-android armv7-linux-androideabi
+          cargo install cargo-ndk --version 4.1.2 --locked
+
+      - name: Reproduce verified bundled model
+        shell: pwsh
+        run: ./tools/prepare-model.ps1
+
+      - name: Run safety and Android gates
+        shell: pwsh
+        run: |
+          cargo test --workspace --locked
+          ./gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease '-PprohoriAbis=arm64-v8a,armeabi-v7a' --no-daemon
+
+      - name: Validate evaluation and unsigned release artifacts
+        shell: pwsh
+        run: |
+          ./tools/validate-release.ps1 -ApkPath app/build/outputs/apk/debug/app-debug.apk -Mode Evaluation
+          ./tools/validate-release.ps1 -ApkPath app/build/outputs/apk/release/app-release-unsigned.apk -Mode UnsignedRelease
+
+      - name: Build production-signed artifact when signing secrets exist
+        shell: pwsh
+        env:
+          PROHORI_KEYSTORE_BASE64: ${{ secrets.PROHORI_KEYSTORE_BASE64 }}
+          PROHORI_KEYSTORE_PASSWORD: ${{ secrets.PROHORI_KEYSTORE_PASSWORD }}
+          PROHORI_KEY_ALIAS: ${{ secrets.PROHORI_KEY_ALIAS }}
+          PROHORI_KEY_PASSWORD: ${{ secrets.PROHORI_KEY_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PROHORI_KEYSTORE_BASE64)) {
+            Write-Host 'No production keystore secret supplied; signed artifact gate is intentionally skipped.'
+            exit 0
+          }
+          $private = Join-Path $PWD 'private'
+          New-Item -ItemType Directory -Path $private -Force | Out-Null
+          $keystore = Join-Path $private 'prohori-production.jks'
+          [IO.File]::WriteAllBytes($keystore, [Convert]::FromBase64String($env:PROHORI_KEYSTORE_BASE64))
+          $env:PROHORI_KEYSTORE_FILE = $keystore
+          $env:PROHORI_PRODUCTION_SIGNING = 'true'
+          ./gradlew.bat :app:assembleRelease -PprohoriProductionSigning=true '-PprohoriAbis=arm64-v8a,armeabi-v7a' --no-daemon
+          ./tools/validate-release.ps1 -ApkPath app/build/outputs/apk/release/app-release.apk -Mode Production
+
+      - name: Upload validated evaluation APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: prohori-evaluation-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload validated production APK when signed
+        if: ${{ hashFiles('app/build/outputs/apk/release/app-release.apk') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: prohori-production-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 7

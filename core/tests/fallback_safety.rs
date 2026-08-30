@@ -374,8 +374,7 @@ fn the_answer_a_model_reaches_for_is_refused_by_name() {
         ),
         (
             "trapped under a slab",
-            "Commence uninterrupted external compressions whilst simultaneously arranging \
-             definitive advanced intervention.",
+            "Commence uninterrupted compressions while arranging definitive intervention.",
             "TooHardToRead",
         ),
     ];
@@ -421,11 +420,10 @@ fn plain_hands_and_words_guidance_is_accepted() {
     let guidance = fallback::validate(&json(&[
         "Look around and make sure it is safe to go near.",
         "Call for help and say where you are.",
-        "Keep them still and keep them warm.",
         "Stay with them and keep talking to them until help comes.",
     ]))
     .expect("this is the answer the feature exists to deliver");
-    assert_eq!(guidance.steps.len(), 4);
+    assert_eq!(guidance.steps.len(), MAX_STEPS);
     for sentence in guidance.sentences() {
         assert!(!sentence.chars().any(char::is_numeric));
         assert!(sentence.chars().count() <= MAX_SENTENCE_CHARS);
@@ -478,11 +476,18 @@ fn the_grammar_and_the_validator_agree_on_every_bound() {
         MAX_STEPS - 1,
         rule_line(grammar, "steps")
     );
-    assert!(
-        rule_line(grammar, "do-not").contains(&format!("{{0,{}}}", MAX_WARNINGS - 1)),
-        "do_not bound: {}",
-        rule_line(grammar, "do-not")
-    );
+    let warning_rule = rule_line(grammar, "do-not");
+    if MAX_WARNINGS == 1 {
+        assert!(
+            warning_rule.contains("sentence?"),
+            "zero or one warning must use an optional sentence: {warning_rule}"
+        );
+    } else {
+        assert!(
+            warning_rule.contains(&format!("{{0,{}}}", MAX_WARNINGS - 1)),
+            "do_not bound: {warning_rule}"
+        );
+    }
     assert!(
         rule_line(grammar, "call-now").ends_with("\"true\""),
         "nothing here has the authority to say do not call: {}",

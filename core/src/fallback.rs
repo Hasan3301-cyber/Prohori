@@ -83,11 +83,11 @@ pub const MIN_CHARS: usize = 12;
 /// Bounds matching `data/grammar/fallback.gbnf`. Checked again here because [`validate`]
 /// is also run against output that did not come from that grammar — the host probe, and
 /// any future engine.
-pub const MAX_STEPS: usize = 6;
+pub const MAX_STEPS: usize = 3;
 /// Ditto, for the warning list.
-pub const MAX_WARNINGS: usize = 3;
+pub const MAX_WARNINGS: usize = 1;
 /// Ditto, per sentence.
-pub const MAX_SENTENCE_CHARS: usize = 140;
+pub const MAX_SENTENCE_CHARS: usize = 80;
 /// The corpus's own reading gate (`PLAN.md` §8), applied to model-written text.
 pub const MAX_GRADE: f64 = 6.0;
 
@@ -581,8 +581,7 @@ mod tests {
     #[test]
     fn clinical_prose_is_refused_on_reading_grade() {
         let error = validate(&json(&[
-            "Commence uninterrupted external compressions whilst simultaneously arranging \
-             definitive advanced intervention.",
+            "Maintain continuous observation while awaiting professional assistance.",
         ]))
         .expect_err("refused");
         assert!(
@@ -591,17 +590,16 @@ mod tests {
         );
     }
 
-    /// Six unpunctuated entries must not fail a gate the text did not fail.
+    /// Three unpunctuated entries must not fail a gate the text did not fail.
     #[test]
     fn unpunctuated_entries_are_graded_as_sentences() {
         let guidance = validate(&json(&[
             "Look around and make sure it is safe",
             "Call for help and say what you can see",
             "Keep them still and keep them warm",
-            "Stay with them until help comes",
         ]))
         .expect("short plain entries must pass without full stops");
-        assert_eq!(guidance.steps.len(), 4);
+        assert_eq!(guidance.steps.len(), 3);
     }
 
     #[test]

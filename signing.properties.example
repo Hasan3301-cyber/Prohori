@@ -1,0 +1,6 @@
+# Copy this file to signing.properties (which is gitignored).
+# Paths are resolved from the repository root. Never commit the real file or keystore.
+storeFile=private/prohori-production.jks
+storePassword=replace-with-keystore-password
+keyAlias=prohori
+keyPassword=replace-with-key-password
