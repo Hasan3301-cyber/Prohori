@@ -212,30 +212,171 @@ On first launch, Prohori copies and verifies the bundled model into private app 
 app open while **Preparing local AI** is displayed. A valid installed model is preserved during
 upgrades.
 
-### Quick user guide
+### Complete user guide
 
-**Offline emergency**
+#### First launch
 
-1. Select **Offline**.
-2. Describe what is happening, for example `My father has chest pain and is sweating`.
-3. Tap **Check symptoms offline** when needed.
-4. Follow the deterministic card and call action; do not wait for AI in a clear emergency.
-5. Expand routing only when a city pack is available and transport is being considered.
+1. Open Prohori after installation.
+2. Read the safety notice and continue through onboarding.
+3. Keep the application open while **Preparing local AI** is displayed. The progress screen
+   shows how many model bytes have been copied and, once enough progress is available, an
+   estimated remaining time.
+4. If preparation fails because storage is low, free space and press **Try again**. You may
+   choose **Continue without local AI**; deterministic emergency rules and first-aid cards will
+   still work.
+5. When preparation finishes, use the bottom navigation to choose **Offline**, **Online**, or
+   **AI** chat mode.
 
-**Online hospital coordination**
+> [!IMPORTANT]
+> In an obvious emergency, call local emergency services immediately. Do not wait for model
+> preparation, an AI response, route discovery, or a hospital message.
 
-1. Open **Settings** and add a LocationIQ key.
-2. Configure an HTTPS relay or a personal Telegram bot.
-3. Select **Online** and tap **Find nearby hospitals**.
-4. Add verified facility contacts and tap **Save contacts**.
-5. Tap **Notify all registered hospitals in parallel**.
-6. Wait for explicit replies and follow the selected confirmed route.
+#### Offline emergency guidance
 
-**Private chat**
+Use this mode when the internet is unavailable or immediate first-aid guidance is needed.
 
-1. Select **Chat**.
-2. Ask a general question and tap **Send**.
-3. For an emergency, use the deterministic handoff buttons that appear.
+1. Select **Offline** in the bottom navigation.
+2. In **What is happening?**, describe observable facts in a short sentence. Examples:
+   - `He is not breathing.`
+   - `My father has chest pain and is sweating.`
+   - `She burned her arm with hot water.`
+3. Tap **Check symptoms offline**. Critical red flags are also evaluated while the description
+   is being entered.
+4. If an emergency is recognized, read the displayed card from the beginning. Confirm that its
+   **Applies to** description fits the situation.
+5. Follow the numbered steps and read the **Do not** and **Get help if** sections. Prohori shows
+   the card's sources and whether a clinician has reviewed it.
+6. Use **Read aloud** only when spoken guidance would help. It never starts automatically and
+   can be stopped at any time.
+7. Use the fixed emergency button to open Android's dialer. Confirm the number before placing
+   the call.
+8. If no protocol covers the description, the private model may prepare a separate block of
+   constrained guidance. It is clearly labelled as model-written text. Press **Cancel local
+   AI** to stop generation or **Try again** after a failure.
+9. Edit the description whenever the situation changes. Guidance generated for older text is
+   not reused under the new description.
+
+#### Offline hospital route and contact fallback
+
+This feature requires an installed signed city pack. The bundled RUET/Rajshahi pack is only a
+technical demonstration and is marked **not field checked**.
+
+1. From Offline mode, expand **Hospital routing and dispatch**.
+2. Tap **Route from this phone**.
+3. Grant foreground location permission and ensure Android Location is enabled. Prohori reads
+   GPS/network location locally; it does not contact LocationIQ for this route.
+4. Review the route result, data age, condition sources, and every considered hospital. A route
+   can be refused when data is stale, incomplete, blocked, or incompatible with the configured
+   vehicle.
+5. If device location is unavailable and you only want to inspect the demonstration, tap
+   **Use RUET demo origin**. Prohori never selects this coordinate automatically.
+6. A cached online hospital may expose **Call hospital** or **Prepare SMS** when verified contact
+   details were saved earlier. Android leaves the final call or Send action to you.
+7. Treat all cached ETAs, road conditions, and readiness information as historical. Their age
+   is displayed and they are not proof that a hospital is currently ready.
+
+#### Configure Online mode
+
+Online discovery requires a LocationIQ API key. Hospital notification additionally requires an
+HTTPS relay or a personal Telegram bot used by only this phone.
+
+1. Tap the settings icon in the application header.
+2. Enter the **LocationIQ API key** supplied by your LocationIQ account.
+3. For a managed deployment, enter the organization-provided **Relay HTTPS URL** and **Relay
+   device token**.
+4. For supervised single-phone testing only, a personal **Telegram bot token** may be entered
+   instead of relay credentials.
+5. Review the emergency-number country and override. Correct it if the inferred number does not
+   match the user's actual location.
+6. Press **Save**. Credentials are encrypted on this device and are not written into the APK.
+
+#### Find and compare nearby hospitals
+
+1. Select **Online**.
+2. Tap **Find nearby hospitals**.
+3. Grant foreground location permission. The request is made only after this tap.
+4. Wait while Prohori finds medical facilities and calculates candidate routes.
+5. Review up to six hospital cards. Each card shows the facility, provider route distance,
+   estimated time, fetch time, route age, and whether a traffic datasource was explicitly
+   reported.
+6. Do not interpret **Traffic not verified** as a traffic-free road. It means Prohori has no
+   provider evidence for a live traffic claim.
+7. Tap **Open route** to inspect a facility in an installed navigation application. Opening a
+   route does not contact or confirm that hospital.
+
+#### Register hospital contact options
+
+Hospital contacts should be entered only after they have been verified with the facility.
+
+1. On a hospital card, enter its Telegram numeric chat ID or verified `@username`.
+2. Optionally enter a verified hotline and SMS destination.
+3. Tap **Save contacts**.
+4. Hospital staff must have already started the bot or added it to their group; Telegram bots
+   cannot initiate a conversation with an unknown group.
+5. Use **Call** or **Prepare SMS** for a user-controlled fallback. These actions do not silently
+   call or send anything.
+
+#### Notify hospitals in parallel
+
+1. After routes are ready and contacts are registered, tap **Notify all registered hospitals in
+   parallel**.
+2. Prohori sends to as many as six registered Telegram destinations concurrently. Unregistered
+   facilities remain visible and are marked as not contacted.
+3. Watch the workflow timeline and each hospital's state:
+   - **Delivered; awaiting reply** means the request reached the transport, not that the hospital
+     accepted the patient.
+   - **Explicit YES** means a matching human reply confirmed readiness.
+   - **Explicit NO** means the hospital declined.
+   - **Delivery failed** means the request did not reach the destination.
+4. If needed, use **Retry this hospital** on a failed or declined card.
+5. Never treat silence, `maybe`, or a generic `ready` message as acceptance. Prohori does not.
+6. When one or more hospitals explicitly reply `YES`, Prohori selects the confirmed facility
+   with the lowest provider ETA and fetches its detailed route.
+7. Review the selected hospital and tap **Open route**. Continue following emergency-dispatcher
+   or medical-professional instructions over application suggestions.
+
+#### Private AI chat
+
+Use Chat for general, non-urgent suggestions that do not require hospital discovery.
+
+1. Select **AI** in the bottom navigation.
+2. Type a question or tap the voice-input action.
+3. Tap **Send**. The answer appears progressively as it is generated on the phone.
+4. Ask follow-up questions normally; Prohori keeps a bounded recent conversation context.
+5. Tap **Cancel local AI** if generation is taking too long. The conversation remains available,
+   and **Try again** can resend an unanswered question.
+6. If recent messages contain a recognized emergency, Prohori bypasses free-form AI, displays
+   deterministic first-aid guidance, and suggests a broad emergency service. The suggestion is
+   routing metadata—not a diagnosis.
+7. Tap **Open first aid** to move to Offline emergency guidance or **Find hospitals** to move to
+   Online discovery. No hospital is contacted until the corresponding user action is taken.
+
+#### Permissions and privacy behavior
+
+| Permission/action | When it is used |
+|---|---|
+| Internet | LocationIQ discovery/routing and Telegram or relay communication |
+| Foreground location | Only after a route/discovery action initiated by the user |
+| Speech recognition | Only after the user taps voice input; handled by an Android speech service |
+| Dialer | Opens with a number filled in; the user places the call |
+| SMS composer | Opens with a readiness message filled in; the user presses Send |
+
+Prohori does not request background location, direct-call, SMS-reading, SMS-sending, or phone-state
+permissions. Medical descriptions and chat history are not saved by the application.
+
+#### Common problems
+
+- **“App not installed”** — make sure the APK is signed, enough storage is available, and an
+  incompatible build with a different signature is not already installed. Never install the
+  unsigned release APK.
+- **Local AI appears slow** — the bundled model is large and speed depends on the phone. Keep the
+  app foregrounded, close memory-heavy apps, and use Cancel if necessary.
+- **No current location** — enable Android Location, grant foreground permission, and retry.
+- **LocationIQ rejected the request** — verify the API key, internet connection, and account
+  quota in Settings.
+- **Hospital is unregistered** — add and save the exact facility's verified Telegram contact.
+- **Telegram alert receives no reply** — call the hospital. Silence is not confirmation.
+- **No dialer or SMS app opened** — use the displayed number/script manually or another phone.
 
 ## Configuration
 
